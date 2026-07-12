@@ -1,6 +1,9 @@
 import puppeteer from 'puppeteer';
 import { config } from './config.js';
 
+// page.waitForTimeout удалён в Puppeteer 22+, используем свою задержку
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export async function openMeeting({ url, logger }) {
   // Валидация URL
   try {
@@ -84,7 +87,7 @@ export async function openMeeting({ url, logger }) {
     });
 
     // Ждем загрузки страницы
-    await page.waitForTimeout(5000);
+    await sleep(5000);
 
     // Выполняем логику присоединения в зависимости от платформы
     switch (platform) {
@@ -141,7 +144,7 @@ async function joinZoomMeeting(page, logger) {
       await page.waitForSelector('a[href*="wc/join"]', { timeout: 10000 });
       await page.click('a[href*="wc/join"]');
       logger.info('Clicked "Join from Browser" for Zoom');
-      await page.waitForTimeout(3000);
+      await sleep(3000);
     } catch (e) {
       logger.warn('Browser join link not found, continuing...');
     }
@@ -191,7 +194,7 @@ async function joinZoomMeeting(page, logger) {
       logger.info('Used JavaScript fallback for Zoom join');
     }
 
-    await page.waitForTimeout(8000);
+    await sleep(8000);
 
     // Отключаем микрофон и камеру в Zoom
     try {
@@ -286,7 +289,7 @@ async function joinGoogleMeeting(page, logger) {
       logger.info('Used JavaScript fallback for Google Meet join');
     }
 
-    await page.waitForTimeout(8000);
+    await sleep(8000);
 
   } catch (error) {
     throw new Error(`Google Meet join failed: ${error.message}`);
@@ -302,7 +305,7 @@ async function joinTeamsMeeting(page, logger) {
       await page.waitForSelector('a[href*="launcher/launcher.html"]', { timeout: 10000 });
       await page.click('a[href*="launcher/launcher.html"]');
       logger.info('Clicked "Join on the web" for Teams');
-      await page.waitForTimeout(3000);
+      await sleep(3000);
     } catch (e) {
       logger.warn('Web join link not found for Teams');
     }
@@ -358,7 +361,7 @@ async function joinTeamsMeeting(page, logger) {
       }
     }
 
-    await page.waitForTimeout(8000);
+    await sleep(8000);
 
   } catch (error) {
     throw new Error(`Teams meeting join failed: ${error.message}`);
@@ -399,7 +402,7 @@ async function joinTelemostMeeting(page, logger) {
       }
     }
 
-    await page.waitForTimeout(8000);
+    await sleep(8000);
 
     // Отключаем микрофон
     try {
@@ -451,7 +454,7 @@ async function joinContourMeeting(page, logger) {
       }
     }
 
-    await page.waitForTimeout(10000);
+    await sleep(10000);
 
   } catch (error) {
     throw new Error(`Contour meeting join failed: ${error.message}`);
@@ -486,7 +489,7 @@ async function joinGenericMeeting(page, logger) {
         await page.click(selector);
         logger.info(`Clicked generic join button: ${selector}`);
         joined = true;
-        await page.waitForTimeout(3000);
+        await sleep(3000);
         break;
       } catch (e) {
         continue;
@@ -507,7 +510,7 @@ async function joinGenericMeeting(page, logger) {
       logger.info('Used JavaScript fallback for generic meeting');
     }
 
-    await page.waitForTimeout(8000);
+    await sleep(8000);
 
   } catch (error) {
     logger.warn(`Generic meeting join had issues: ${error.message}`);
