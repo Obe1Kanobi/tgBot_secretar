@@ -33,14 +33,14 @@ setupHealthCheck(app);
 
 // Endpoint для полного цикла анализа встречи
 app.post('/process-meeting', async (req, res) => {
-  const { meetingUrl, leadId, chatId } = req.body || {};
+  const { meetingUrl, chatId /* , leadId */ } = req.body || {};
 
   // Куда слать отчёт: чат, из которого пришла команда, либо ADMIN_CHAT_ID из .env
   const reportChatId = chatId || config.adminChatId;
   
   // Validation
   if (!meetingUrl) {
-    logger.warn({ meetingUrl, leadId }, 'Missing meetingUrl in request');
+    logger.warn({ meetingUrl /* , leadId */ }, 'Missing meetingUrl in request');
     return res.status(400).json({ 
       error: 'VALIDATION_ERROR',
       message: 'meetingUrl is required',
@@ -59,7 +59,7 @@ app.post('/process-meeting', async (req, res) => {
     });
   }
   
-  logger.info({ meetingUrl, leadId }, 'Meeting processing request received');
+  logger.info({ meetingUrl /* , leadId */ }, 'Meeting processing request received');
 
   let browser, page, rec, audioFile;
   try {
@@ -86,38 +86,31 @@ app.post('/process-meeting', async (req, res) => {
     logger.info({ transcriptLength: transcript.length }, 'Transcript received');
 
     // Анализ по чек-листу через Gemini
-    const analysisResult = await runChecklist(transcript, logger);
-    logger.info({ overallScore: analysisResult.overallScore, category: analysisResult.category }, 'Meeting analysis completed');
+    // const analysisResult = await runChecklist(transcript, logger);
+    // logger.info({ overallScore: analysisResult.overallScore, category: analysisResult.category }, 'Meeting analysis completed');
 
     // Обновляем лид в Bitrix24 если указан leadId
-    if (leadId && config.bitrix.webhookUrl) {
-      try {
-        await bitrixService.updateLead(leadId, analysisResult, transcript, meetingUrl, logger);
-        logger.info({ leadId }, 'Bitrix lead updated successfully');
-      } catch (bitrixError) {
-        logger.error({ leadId, error: bitrixError.message }, 'Failed to update Bitrix lead');
-        // Не прерываем выполнение, просто логируем ошибку
-      }
-    }
+    // if (leadId && config.bitrix.webhookUrl) {
+    //   try {
+    //     await bitrixService.updateLead(leadId, analysisResult, transcript, meetingUrl, logger);
+    //     logger.info({ leadId }, 'Bitrix lead updated successfully');
+    //   } catch (bitrixError) {
+    //     logger.error({ leadId, error: bitrixError.message }, 'Failed to update Bitrix lead');
+    //     // Не прерываем выполнение, просто логируем ошибку
+    //   }
+    // }
 
     // Формируем отчет для отправки админу
     const reportMessage = `
 📊 ОТЧЕТ ПО ВСТРЕЧЕ
 
 🔗 Ссылка: ${meetingUrl}
-📋 ID лида: ${leadId || 'Не указан'}
-
 📝 Длина транскрипта: ${transcript.length} символов
-⭐ Общая оценка: ${analysisResult.overallScore}/100
-🏷️ Категория клиента: ${analysisResult.category}
 
 📋 Результаты анализа:
 ${Object.entries(analysisResult.points || {}).map(([key, value]) => 
   `${key}. ${value.score}/10 - ${value.comment?.substring(0, 50) || 'N/A'}...`
 ).join('\n')}
-
-💡 Резюме:
-${analysisResult.summary || 'Нет резюме'}
 
 🎧 Транскрипт (первые 500 символов):
 ${transcript.substring(0, 500)}...
@@ -132,7 +125,7 @@ ${transcript.substring(0, 500)}...
     res.json({
       success: true,
       meetingUrl,
-      leadId,
+      // leadId,
       transcriptLength: transcript.length,
       analysis: {
         overallScore: analysisResult.overallScore,
@@ -140,7 +133,7 @@ ${transcript.substring(0, 500)}...
         summary: analysisResult.summary,
         pointsCount: Object.keys(analysisResult.points || {}).length
       },
-      bitrixUpdated: !!(leadId && config.bitrix.webhookUrl)
+      // bitrixUpdated: !!(leadId && config.bitrix.webhookUrl)
     });
 
   } catch (e) {
@@ -148,7 +141,7 @@ ${transcript.substring(0, 500)}...
       err: e.message, 
       stack: e.stack,
       meetingUrl, 
-      leadId 
+      // leadId 
     }, 'Meeting processing failed');
     
     // Отправляем ошибку в чат, откуда пришла команда (или админу как fallback)
@@ -163,7 +156,7 @@ ${transcript.substring(0, 500)}...
       error: 'PROCESSING_ERROR',
       message: e.message || 'Internal error',
       meetingUrl,
-      leadId
+      // leadId
     });
   } finally {
     // Cleanup resources
