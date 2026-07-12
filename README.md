@@ -46,7 +46,7 @@
 
 ```bash
 # Клонируем репозиторий
-git clone https://github.com/goqorhopar/bot.git
+git clone https://github.com/ragnarook888-ai/bot-secretar
 cd bot
 
 # Устанавливаем зависимости
