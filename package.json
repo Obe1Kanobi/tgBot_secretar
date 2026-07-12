@@ -22,5 +22,16 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/helmet": "^0.0.48",
+    "@types/node": "^26.1.1",
+    "@types/node-telegram-bot-api": "^0.64.15",
+    "@types/pino": "^7.0.4",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.23.0",
+    "typescript": "^7.0.2"
   }
 }
