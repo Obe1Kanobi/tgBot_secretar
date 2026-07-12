@@ -23,7 +23,7 @@
 
 // Обработка для Битрикс24, не нужна
 // export async function runChecklist(transcript, logger) {
-//   const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' });
+//   const model = client.getGenerativeModel({ model: 'gemini-2.5-flash' });
   
 //   const prompt = `
 // Ты - эксперт по продажам и переговорам. Проанализируй транскрипцию встречи и выдай структурированный отчет по 12 пунктам чек-листа.

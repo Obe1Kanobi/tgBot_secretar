@@ -35,7 +35,7 @@ if (token) {
       const chatId = msg.chat.id;
       logger.info({ chatId }, 'Received /help command');
       bot.sendMessage(chatId, `/start - Начать работу с ботом
-        \n/process [ссылка_на_встречу] [ID_лида(для Битрикс24)] - Обработать встречу
+        \n/process [ссылка_на_встречу] - Обработать встречу
         \n/help - Получить справку
         \n/test - Простая команда для тестирования`).catch(console.error);
     });
@@ -47,7 +47,7 @@ if (token) {
       logger.info({ chatId }, 'Received /start command');
       bot.sendMessage(chatId, `🤖 Добро пожаловать в Meeting Bot!
         \n\nДля анализа встречи отправьте:
-        \n/process [ссылка_на_встречу] [ID_лида]
+        \n/process [ссылка_на_встречу]
         \n/help - подробная справка`).catch(console.error);
     });
 

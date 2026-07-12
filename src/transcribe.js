@@ -1,8 +1,8 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { config } from './config.js';
 import fs from 'node:fs';
 
-const client = new GoogleGenerativeAI(config.geminiApiKey);
+const ai = new GoogleGenAI({ apiKey: config.geminiApiKey });
 
 export async function transcribeAudio(filePath, logger) {
   try {
@@ -21,30 +21,27 @@ export async function transcribeAudio(filePath, logger) {
     const audioBuffer = fs.readFileSync(filePath);
     const base64Audio = audioBuffer.toString('base64');
 
-    // Используем Gemini для транскрипции
-    const model = client.getGenerativeModel({ 
-      model: 'gemini-1.5-flash' 
-    });
-
     const prompt = `
-      Пожалуйста, транскрибируй этот аудиофайл встречи. 
+      Пожалуйста, транскрибируй этот аудиофайл встречи.
       Верни только текст разговора без дополнительных комментариев.
       Если можешь определить говорящих, укажи их как "Говорящий 1:", "Говорящий 2:" и т.д.
       Если слышишь имена, используй их вместо "Говорящий X".
     `.trim();
 
-    const result = await model.generateContent([
-      {
-        inlineData: {
-          data: base64Audio,
-          mimeType: 'audio/wav'
+    const result = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { inlineData: { data: base64Audio, mimeType: 'audio/wav' } },
+            { text: prompt }
+          ]
         }
-      },
-      prompt
-    ]);
+      ]
+    });
 
-    const response = await result.response;
-    const transcript = response.text();
+    const transcript = result.text;
 
     if (!transcript || transcript.trim().length === 0) {
       throw new Error('Empty transcript received from Gemini');
