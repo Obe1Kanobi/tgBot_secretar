@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: meeting-bot
+    env: docker
+    plan: free
+    dockerfilePath: Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: GEMINI_API_KEY
+        value: AIzaSyDQR42zm4pcRMkY9KzKvEmXm7hyR8UzxHI
+      - key: TELEGRAM_BOT_TOKEN
+        value: 8431167006:AAGuq0b1t119i7Lzac7idKUtwbwzH-FxqHA
+      - key: ADMIN_CHAT_ID
+        fromSecret: ADMIN_CHAT_ID
+      - key: REC_DIR
+        value: /tmp/recordings
+      - key: REC_MAX_SECONDS
+        value: 3600
+      - key: LOG_LEVEL
+        value: info
+      - key: CHROME_BIN
+        value: /usr/bin/google-chrome-stable

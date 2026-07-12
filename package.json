@@ -1,0 +1,26 @@
+{
+  "name": "meeting-bot",
+  "version": "1.0.0",
+  "description": "Бот для анализа встреч с записью звука, транскрипцией через Gemini",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "NODE_ENV=development node src/index.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.18.0",
+    "axios": "^1.7.2",
+    "cors": "^2.8.6",
+    "express": "^4.19.2",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.1.0",
+    "node-telegram-bot-api": "^0.66.0",
+    "pino": "^9.3.2",
+    "puppeteer": "^22.15.0",
+    "uuid": "^9.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

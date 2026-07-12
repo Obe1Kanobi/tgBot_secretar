@@ -1,0 +1,70 @@
+```
+# Environment files
+.env
+.env.local
+.env.
+
+# Dependencies
+node_modules/
+
+# Build artifacts
+dist/
+build/
+target/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Coverage reports
+coverage/
+htmlcov/
+.coverage
+
+# IDE files
+.vscode/
+.idea/
+
+# Dependency caches
+.mypy_cache/
+.pytest_cache/
+.npm
+.yarn
+bower_components/
+
+# Distribution / packaging
+*.tar.gz
+*.whl
+*.egg
+*.egg-info/
+
+# Testing
+.pytest_cache/
+.coverage
+coverage.xml
+junit.xml
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Local development
+.env.*
+!.env.example
+```
