@@ -1,117 +1,154 @@
-# 🤖 Meeting Bot - Production-Ready Analysis
+# 🤖 Meeting Bot — анализ встреч, готовый к продакшену
 
-[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org)
-[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://docker.com)
-[![Gemini](https://img.shields.io/badge/Gemini-AI-orange.svg)](https://ai.google.dev)
-[![Telegram](https://img.shields.io/badge/Telegram-Bot-blue.svg)](https://core.telegram.org/bots)
-[![Bitrix24](https://img.shields.io/badge/Bitrix24-CRM-green.svg)](https://www.bitrix24.com)
+[Node.js](https://nodejs.org)
+[Docker](https://docker.com)
+[Gemini](https://ai.google.dev)
+[Telegram](https://core.telegram.org/bots)
+[Bitrix24](https://www.bitrix24.com)
 
-**Production-ready meeting analysis bot** with automatic recording, AI-powered transcription via Gemini, structured checklist analysis, and Bitrix24 CRM integration.
+**Production-ready бот для анализа встреч**: автоматическая запись, транскрипция через Gemini AI, структурированный анализ по чек-листу и интеграция с CRM Битрикс24.
 
-## 🚀 Features
+## 🚀 Возможности
 
-### Core Capabilities
-- **Auto-join meetings** via Puppeteer (Google Meet, Zoom, Yandex Telemost, Contour.Talk, MS Teams)
-- **Audio recording** throughout the entire meeting duration
-- **AI Transcription** using Google Gemini 1.5 Flash
-- **Structured analysis** with 12-point sales checklist
-- **Telegram control** - send a link, get a detailed report
-- **Bitrix24 integration** - auto-update leads with analysis results
 
-### Security & Production Features
-- ✅ Helmet security headers
-- ✅ CORS configuration
-- ✅ Rate limiting for API endpoints
-- ✅ Input validation (URL, required fields)
-- ✅ Structured JSON logging with Pino
-- ✅ Graceful shutdown handling
-- ✅ Error handling middleware
-- ✅ Health check endpoints with auth option
-- ✅ Resource cleanup on errors
-- ✅ Memory usage monitoring
 
-## ⚡ Quick Start
+### Основные функции
+
+- **Автоматическое подключение к встречам** через Puppeteer (Google Meet, Zoom, Яндекс Телемост, Контур.Толк, MS Teams)
+- **Запись звука** на протяжении всей встречи
+- **AI-транскрипция** через Google Gemini 1.5 Flash
+- **Структурированный анализ** по чек-листу продаж из 12 пунктов
+- **Управление через Telegram** — отправьте ссылку, получите подробный отчёт
+- **Интеграция с Битрикс24** — автоматическое обновление лидов результатами анализа
+
+
+
+### Безопасность и production-функции
+
+- ✅ Заголовки безопасности через Helmet
+- ✅ Настройка CORS
+- ✅ Ограничение частоты запросов (rate limiting) для API
+- ✅ Валидация входных данных (URL, обязательные поля)
+- ✅ Структурированное JSON-логирование через Pino
+- ✅ Корректное завершение работы (graceful shutdown)
+- ✅ Middleware для обработки ошибок
+- ✅ Эндпоинты проверки состояния (health check) с опциональной авторизацией
+- ✅ Освобождение ресурсов при ошибках
+- ✅ Мониторинг использования памяти
+
+
+
+## ⚡ Быстрый старт
+
+> **Важно:** бот рассчитан на Linux-окружение (PulseAudio, FFmpeg, Xvfb) — на Windows полноценно он не заработает. Рекомендуемый способ запуска — **Docker на Linux-сервере** (см. ниже).
+>
+> **Ещё один нюанс:** проект не использует `dotenv`, поэтому `npm start` сам по себе **не читает файл** `.env` — переменные окружения подхватываются только через Docker (`--env-file` / `env_file` в compose) или если экспортировать их вручную.
 
 ```bash
-# Clone repository
+# Клонируем репозиторий
 git clone https://github.com/goqorhopar/bot.git
 cd bot
 
-# Install dependencies
+# Устанавливаем зависимости
 npm install
 
-# Copy environment file
+# Копируем шаблон переменных окружения
 cp .env.example .env
 
-# Edit .env with your credentials
+# Редактируем .env — вписываем свои ключи
+# (nano — консольный редактор Linux; на Windows просто откройте файл в редакторе)
 nano .env
 
-# Start the bot
+# Запуск (только Linux, переменные нужно экспортировать вручную)
 npm start
 ```
 
-Server will start on `http://localhost:3000`
+Сервер запустится на `http://localhost:3000`
 
-## 📦 Installation
+## 📦 Установка
 
-### Prerequisites
 
-- Node.js 18+ 
-- npm or yarn
-- Docker (optional, for containerized deployment)
-- Chrome/Chromium (installed automatically in Docker)
 
-### Local Installation
+### Требования
+
+- Node.js 18+
+- npm или yarn
+- Docker (рекомендуется — для контейнерного развёртывания)
+- Chrome/Chromium (в Docker устанавливается автоматически)
+
+
+
+### Локальная установка
 
 ```bash
-# Install dependencies
+# Установка зависимостей
 npm install
 
-# Skip Puppeteer download if you have Chrome installed
+# Пропустить скачивание Chromium, если Chrome уже установлен
 PUPPETEER_SKIP_DOWNLOAD=true npm install
 ```
 
-### Docker Installation
+
+
+### Установка через Docker (рекомендуемый способ)
 
 ```bash
-# Build image
+# Сборка образа
 docker build -t meeting-bot .
 
-# Run container
-docker run -d \
-  --name meeting-bot \
-  --env-file .env \
-  -p 3000:10000 \
-  meeting-bot
+# Запуск контейнера (одной строкой — многострочные команды с \ часто ломаются при вставке в SSH)
+docker run -d --name meeting-bot --restart unless-stopped --env-file .env -e PORT=10000 -p 3000:10000 meeting-bot
 ```
 
-## ⚙️ Configuration
+> Флаг `-e PORT=10000` обязателен: проброс портов `3000:10000` ожидает, что приложение внутри контейнера слушает порт 10000, а в `.env` записан порт 3000.
 
-### Required Environment Variables
+Либо через Docker Compose (там переопределение порта уже прописано):
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `TELEGRAM_BOT_TOKEN` | Telegram Bot API token | `123456:ABC-DEF...` |
-| `ADMIN_CHAT_ID` | Admin chat ID for reports | `-1001234567890` |
-| `GEMINI_API_KEY` | Google Gemini API key | `AIzaSy...` |
-| `PORT` | Server port | `3000` |
+```bash
+docker compose up -d --build
+```
 
-### Optional Environment Variables
+> Если видите ошибку `unknown shorthand flag: 'd' in -d` — на сервере нет плагина Compose v2. Установите `docker-compose-plugin` из официального репозитория Docker, попробуйте старую команду `docker-compose up -d --build` или запускайте без compose через `docker run` (см. выше).
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `BITRIX_WEBHOOK_URL` | Bitrix24 webhook URL | - |
-| `BITRIX_USER_ID` | Bitrix24 user ID | `1` |
-| `BITRIX_WEBHOOK_KEY` | Bitrix24 webhook key | - |
-| `REC_DIR` | Recording directory | `/tmp/recordings` |
-| `REC_MAX_SECONDS` | Max recording duration | `3600` |
-| `LOG_LEVEL` | Logging level | `info` |
-| `CHROME_BIN` | Chrome binary path | `/usr/bin/google-chrome-stable` |
-| `CORS_ORIGIN` | CORS allowed origin | `*` |
-| `RATE_LIMIT_MAX_REQUESTS` | Rate limit requests | `10` |
-| `HELMET_ENABLED` | Enable security headers | `true` |
 
-### Environment File Template
+
+## ⚙️ Конфигурация
+
+
+
+### Обязательные переменные окружения
+
+
+| Переменная           | Описание                           | Пример              |
+| -------------------- | ---------------------------------- | ------------------- |
+| `TELEGRAM_BOT_TOKEN` | Токен Telegram Bot API             | `123456:ABC-DEF...` |
+| `ADMIN_CHAT_ID`      | ID чата администратора для отчётов | `-1001234567890`    |
+| `GEMINI_API_KEY`     | API-ключ Google Gemini             | `AIzaSy...`         |
+| `PORT`               | Порт сервера                       | `3000`              |
+
+
+
+
+### Необязательные переменные окружения
+
+
+| Переменная                | Описание                         | По умолчанию                    |
+| ------------------------- | -------------------------------- | ------------------------------- |
+| `BITRIX_WEBHOOK_URL`      | URL вебхука Битрикс24            | -                               |
+| `BITRIX_USER_ID`          | ID пользователя Битрикс24        | `1`                             |
+| `BITRIX_WEBHOOK_KEY`      | Ключ вебхука Битрикс24           | -                               |
+| `REC_DIR`                 | Каталог для записей              | `/tmp/recordings`               |
+| `REC_MAX_SECONDS`         | Максимальная длительность записи | `3600`                          |
+| `LOG_LEVEL`               | Уровень логирования              | `info`                          |
+| `CHROME_BIN`              | Путь к бинарнику Chrome          | `/usr/bin/google-chrome-stable` |
+| `CORS_ORIGIN`             | Разрешённый источник CORS        | `*`                             |
+| `RATE_LIMIT_MAX_REQUESTS` | Лимит запросов                   | `10`                            |
+| `HELMET_ENABLED`          | Включить заголовки безопасности  | `true`                          |
+
+
+
+
+### Шаблон файла окружения
 
 ```bash
 # .env
@@ -123,24 +160,35 @@ PORT=3000
 LOG_LEVEL=info
 ```
 
-## 💻 Usage
 
-### Telegram Commands
 
-- `/start` - Welcome message and instructions
-- `/process [url] [leadId]` - Process a meeting
-- `/test` - Test bot connectivity
+## 💻 Использование
 
-Example:
+
+
+### Команды Telegram
+
+- `/start` — приветствие и инструкции
+- `/process [url] [leadId]` — обработать встречу
+- `/test` — проверка связи с ботом
+
+Пример:
+
 ```
 /process https://meet.google.com/abc-defg-hij L12345
 ```
 
-### API Endpoints
+> Telegram-бот работает через long polling (сам опрашивает серверы Telegram), поэтому для команд Telegram открывать порты наружу не нужно.
+
+
+
+### API-эндпоинты
+
+
 
 #### POST /process-meeting
 
-Process a meeting and return analysis.
+Обрабатывает встречу и возвращает анализ.
 
 ```bash
 curl -X POST http://localhost:3000/process-meeting \
@@ -151,7 +199,8 @@ curl -X POST http://localhost:3000/process-meeting \
   }'
 ```
 
-Response:
+Ответ:
+
 ```json
 {
   "success": true,
@@ -168,15 +217,20 @@ Response:
 }
 ```
 
+> ⚠️ У эндпоинта `/process-meeting` нет авторизации. Если управляете ботом только через Telegram, не открывайте порт наружу: используйте `-p 127.0.0.1:3000:10000` вместо `-p 3000:10000`.
+
+
+
 #### GET /health
 
-Health check endpoint.
+Проверка состояния сервиса.
 
 ```bash
 curl http://localhost:3000/health
 ```
 
-Response:
+Ответ:
+
 ```json
 {
   "status": "ok",
@@ -187,244 +241,312 @@ Response:
 }
 ```
 
+
+
 #### GET /health/deep
 
-Deep health check with system metrics.
+Расширенная проверка с системными метриками.
 
-## 🏗 Architecture
+## 🏗 Архитектура
 
-### Project Structure
+
+
+### Структура проекта
 
 ```
 ├── src/
-│   ├── index.js           # Express server + main API
-│   ├── middleware.js      # Security, logging, error handling
-│   ├── config.js          # Configuration management
-│   ├── telegram.js        # Telegram bot logic
-│   ├── browser.js         # Puppeteer browser automation
-│   ├── recording.js       # Audio recording via FFmpeg
-│   ├── transcribe.js      # Gemini audio transcription
-│   ├── gemini.js          # AI checklist analysis
-│   └── bitrix.js          # Bitrix24 CRM integration
-├── Dockerfile             # Container configuration
-├── docker-compose.yml     # Docker Compose setup
-├── render.yaml            # Render deployment config
-├── .env.example           # Environment template
-└── package.json           # Dependencies
+│   ├── index.js           # Express-сервер + основной API
+│   ├── middleware.js      # Безопасность, логирование, обработка ошибок
+│   ├── config.js          # Управление конфигурацией
+│   ├── telegram.js        # Логика Telegram-бота
+│   ├── browser.js         # Автоматизация браузера через Puppeteer
+│   ├── recording.js       # Запись звука через FFmpeg
+│   ├── transcribe.js      # Транскрипция аудио через Gemini
+│   ├── gemini.js          # AI-анализ по чек-листу
+│   └── bitrix.js          # Интеграция с CRM Битрикс24
+├── Dockerfile             # Конфигурация контейнера
+├── docker-compose.yml     # Настройка Docker Compose
+├── render.yaml            # Конфигурация деплоя на Render
+├── .env.example           # Шаблон переменных окружения
+└── package.json           # Зависимости
 ```
 
-### Data Flow
 
-1. **Request Received** → Telegram command or API call
-2. **Browser Launch** → Puppeteer opens meeting URL
-3. **Auto-Join** → Platform-specific join logic
-4. **Recording Start** → FFmpeg captures system audio
-5. **Meeting Duration** → Wait for timeout or end signal
-6. **Recording Stop** → Save audio file
-7. **Transcription** → Gemini AI converts audio to text
-8. **Analysis** → 12-point checklist evaluation
-9. **CRM Update** → Bitrix24 lead update (if leadId provided)
-10. **Report Delivery** → Telegram message to admin
 
-### Supported Platforms
+### Как проходит обработка
+
+1. **Получение запроса** → команда в Telegram или вызов API
+2. **Запуск браузера** → Puppeteer открывает ссылку на встречу (на виртуальном экране Xvfb)
+3. **Автовход** → логика подключения под конкретную платформу
+4. **Старт записи** → FFmpeg захватывает системный звук через PulseAudio
+5. **Длительность встречи** → ожидание таймаута или сигнала окончания
+6. **Остановка записи** → сохранение аудиофайла
+7. **Транскрипция** → Gemini AI превращает звук в текст
+8. **Анализ** → оценка по чек-листу из 12 пунктов
+9. **Обновление CRM** → обновление лида в Битрикс24 (если указан leadId)
+10. **Доставка отчёта** → сообщение администратору в Telegram
+
+
+
+### Поддерживаемые платформы
 
 - ✅ Google Meet
 - ✅ Zoom
 - ✅ Microsoft Teams
-- ✅ Yandex Telemost
-- ✅ Contour.Talk
-- ✅ Generic platforms (fallback logic)
+- ✅ Яндекс Телемост
+- ✅ Контур.Толк
+- ✅ Прочие платформы (запасная универсальная логика)
 
-## 🚢 Deployment
 
-### Docker Deployment
+
+## 🚢 Развёртывание
+
+
+
+### Развёртывание через Docker (на VPS/дроплете)
 
 ```bash
-# Build
+# Сборка
 docker build -t meeting-bot .
 
-# Run
-docker run -d \
-  --env-file .env \
-  -p 3000:10000 \
-  --name meeting-bot \
-  meeting-bot
+# Запуск (одной строкой)
+docker run -d --name meeting-bot --restart unless-stopped --env-file .env -e PORT=10000 -p 3000:10000 meeting-bot
 
-# Logs
+# Логи
 docker logs -f meeting-bot
+
+# Проверка
+docker ps
+curl http://localhost:3000/health
 ```
 
-### Render Deployment
+Благодаря `--restart unless-stopped` контейнер сам поднимется после сбоя или перезагрузки сервера. Если нужно пересоздать контейнер: `docker rm -f meeting-bot`, затем снова `docker run ...`.
 
-1. Connect your GitHub repository to Render
-2. Select `render.yaml` as the blueprint
-3. Set environment variables in Render dashboard
-4. Deploy automatically on push
+> **Рекомендация по ресурсам:** внутри контейнера работают Chrome + FFmpeg, поэтому берите сервер минимум с **2 ГБ RAM** — на 1 ГБ Chrome при обработке встречи, скорее всего, будет убит по OOM.
 
-### Environment-Specific Configs
 
-- `.env.example` - Template for local development
-- `.env.production` - Production hardening options
 
-## 🔧 Development
+### Развёртывание на Render
 
-### Scripts
+1. Подключите ваш GitHub-репозиторий к Render
+2. Выберите `render.yaml` как blueprint
+3. Задайте переменные окружения в панели Render
+4. Деплой запускается автоматически при пуше
+
+
+
+### Конфигурации под окружения
+
+- `.env.example` — шаблон для локальной разработки
+- `.env.production` — настройки для продакшена
+
+
+
+## 🔧 Разработка
+
+
+
+### Скрипты
 
 ```bash
-# Start production
+# Запуск в продакшене
 npm start
 
-# Start development
+# Запуск в режиме разработки
 npm run dev
 
-# Check syntax
+# Проверка синтаксиса
 node --check src/index.js
 
-# Audit dependencies
+# Аудит зависимостей
 npm audit
 
-# Fix vulnerabilities
+# Исправление уязвимостей
 npm audit fix
 ```
 
-### Adding New Meeting Platforms
 
-Edit `src/browser.js`:
+
+### Добавление новых платформ для встреч
+
+Отредактируйте `src/browser.js`:
 
 ```javascript
 async function joinNewPlatform(page, logger) {
-  // Platform-specific join logic
+  // Логика входа для конкретной платформы
 }
 ```
 
-### Testing
+
+
+### Тестирование
 
 ```bash
-# Test health endpoint
+# Проверка эндпоинта health
 curl http://localhost:3000/health
 
-# Test process endpoint
+# Проверка эндпоинта обработки
 curl -X POST http://localhost:3000/process-meeting \
   -H "Content-Type: application/json" \
   -d '{"meetingUrl": "https://example.com"}'
 ```
 
-## 🐛 Troubleshooting
 
-### Common Issues
 
-**1. Puppeteer/Chrome Errors**
+## 🐛 Решение проблем
+
+
+
+### Частые проблемы
+
+**1. Ошибки Puppeteer/Chrome**
+
 ```bash
-# Install Chrome dependencies
+# Установка зависимостей Chrome
 apt-get install -y chromium-browser
 
-# Or use Docker which includes all dependencies
+# Или используйте Docker — там все зависимости уже есть
 docker run meeting-bot
 ```
 
-**2. Audio Recording Issues**
+**2. Проблемы с записью звука**
+
 ```bash
-# Check PulseAudio is running
+# Проверить, работает ли PulseAudio
 pulseaudio --check
 
-# Verify FFmpeg installation
+# Проверить установку FFmpeg
 ffmpeg -version
 ```
 
-**3. API Key Errors**
-- Verify `GEMINI_API_KEY` is valid
-- Check API quota in Google Cloud Console
-- Ensure no trailing spaces in .env
+**3. Ошибки API-ключей**
 
-**4. Telegram Bot Not Responding**
-- Verify `TELEGRAM_BOT_TOKEN` is correct
-- Check bot is not blocked by admin
-- Review polling logs for errors
+- Проверьте, что `GEMINI_API_KEY` действителен
+- Проверьте квоту API в Google Cloud Console
+- Убедитесь, что в `.env` нет лишних пробелов в конце строк
 
-**5. Memory Issues**
+**4. Telegram-бот не отвечает**
+
+- Проверьте правильность `TELEGRAM_BOT_TOKEN`
+- Убедитесь, что бот не заблокирован администратором
+- Посмотрите логи polling на предмет ошибок
+
+**5. Ошибка** `unknown shorthand flag: 'd' in -d`
+
+- На сервере нет плагина Compose v2 — установите `docker-compose-plugin` или запускайте через `docker run` (см. раздел «Развёртывание»)
+
+**6.** `docker run` **пишет** `requires at least 1 argument`
+
+- При вставке многострочной команды потерялось имя образа в конце — вставьте команду одной строкой
+
+**7. Проблемы с памятью**
+
 ```bash
-# Monitor memory usage
+# Мониторинг использования памяти
 docker stats meeting-bot
 
-# Adjust Node memory limit
+# Ограничение памяти для Node
 NODE_OPTIONS="--max-old-space-size=512" npm start
 ```
 
-### Logs
+
+
+### Логи
 
 ```bash
-# View application logs
+# Посмотреть логи приложения
 docker logs meeting-bot
 
-# Follow logs in real-time
+# Следить за логами в реальном времени
 docker logs -f meeting-bot
 
-# Last 100 lines
+# Последние 100 строк
 docker logs --tail 100 meeting-bot
 ```
 
-### Getting Help
 
-- Check existing issues on GitHub
-- Review logs with `LOG_LEVEL=debug`
-- Contact support via Telegram
 
-## 📊 Monitoring
+### Где искать помощь
 
-### Metrics to Watch
+- Проверьте открытые issues на GitHub
+- Изучите логи с `LOG_LEVEL=debug`
+- Обратитесь в поддержку через Telegram
 
-- Memory usage (keep under 512MB)
-- CPU usage during meetings
-- Recording file sizes
-- API response times
-- Error rates
 
-### Alerting
 
-Set up alerts for:
-- High memory usage (>80%)
-- Failed meeting processes
-- API rate limit hits
-- Health check failures
+## 📊 Мониторинг
 
-## 🔒 Security
 
-### Best Practices Implemented
 
-- ✅ Input validation on all endpoints
-- ✅ Rate limiting to prevent abuse
-- ✅ CORS configuration
-- ✅ Security headers via Helmet
-- ✅ No sensitive data in logs
-- ✅ Graceful error handling
-- ✅ Resource cleanup
+### За чем следить
 
-### Recommendations
+- Использование памяти (держать ниже 512 МБ в простое)
+- Нагрузка на CPU во время встреч
+- Размеры файлов записей
+- Время ответа API
+- Частота ошибок
 
-1. Use HTTPS in production
-2. Rotate API keys regularly
-3. Limit rate limits based on usage
-4. Monitor for unusual patterns
-5. Keep dependencies updated
 
-## 📝 License
 
-MIT License - see LICENSE file for details
+### Оповещения
 
-## 🤝 Contributing
+Настройте алерты на:
 
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
+- Высокое использование памяти (>80%)
+- Неудачные обработки встреч
+- Срабатывания rate limit в API
+- Падения health check
 
-## 📞 Support
 
-For issues and questions:
+
+## 🔒 Безопасность
+
+
+
+### Реализованные практики
+
+- ✅ Валидация входных данных на всех эндпоинтах
+- ✅ Rate limiting против злоупотреблений
+- ✅ Настройка CORS
+- ✅ Заголовки безопасности через Helmet
+- ✅ Отсутствие чувствительных данных в логах
+- ✅ Корректная обработка ошибок
+- ✅ Освобождение ресурсов
+
+
+
+### Рекомендации
+
+1. Используйте HTTPS в продакшене
+2. Регулярно меняйте API-ключи
+3. Настраивайте rate limit под реальную нагрузку
+4. Следите за необычной активностью
+5. Обновляйте зависимости
+6. Не открывайте порт API наружу без необходимости (`-p 127.0.0.1:3000:10000`)
+
+
+
+## 📝 Лицензия
+
+Лицензия MIT — см. файл LICENSE
+
+## 🤝 Участие в разработке
+
+1. Сделайте форк репозитория
+2. Создайте ветку с фичей (`git checkout -b feature/amazing-feature`)
+3. Закоммитьте изменения (`git commit -m 'Add amazing feature'`)
+4. Отправьте ветку (`git push origin feature/amazing-feature`)
+5. Откройте Pull Request
+
+
+
+## 📞 Поддержка
+
+По вопросам и проблемам:
+
 - GitHub Issues
 - Telegram: @your_support_bot
 
 ---
 
-**Built with ❤️ using Node.js, Puppeteer, and Google Gemini AI**
+**Сделано с ❤️ на Node.js, Puppeteer и Google Gemini AI**
