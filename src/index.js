@@ -33,7 +33,10 @@ setupHealthCheck(app);
 
 // Endpoint для полного цикла анализа встречи
 app.post('/process-meeting', async (req, res) => {
-  const { meetingUrl, leadId } = req.body || {};
+  const { meetingUrl, leadId, chatId } = req.body || {};
+
+  // Куда слать отчёт: чат, из которого пришла команда, либо ADMIN_CHAT_ID из .env
+  const reportChatId = chatId || config.adminChatId;
   
   // Validation
   if (!meetingUrl) {
@@ -67,9 +70,12 @@ app.post('/process-meeting', async (req, res) => {
     rec = startPulseRecording({ logger });
     audioFile = rec.outfile;
 
-    // Ждём окончания встречи (максимум 1 час)
+    // Ждём окончания встречи (максимум 1 час).
+    //TODO обдумать по поводу нормального окончани встречи, если она
+    //закончилась на час раньше то бот выходит также
+    // page.waitForTimeout удалён в Puppeteer 22+, используем обычный setTimeout
     logger.info({ maxSeconds: config.recording.maxSeconds }, 'Waiting for meeting to complete...');
-    await page.waitForTimeout(config.recording.maxSeconds * 1000);
+    await new Promise((resolve) => setTimeout(resolve, config.recording.maxSeconds * 1000));
 
     // Останавливаем запись
     const outfile = await stopRecording(rec);
@@ -117,10 +123,10 @@ ${analysisResult.summary || 'Нет резюме'}
 ${transcript.substring(0, 500)}...
     `.trim();
 
-    // Отправляем отчет админу
-    if (config.adminChatId) {
-      await sendMessage(config.adminChatId, reportMessage);
-      logger.info('Report sent to admin via Telegram');
+    // Отправляем отчет в чат, откуда пришла команда (или админу как fallback)
+    if (reportChatId) {
+      await sendMessage(reportChatId, reportMessage);
+      logger.info({ reportChatId }, 'Report sent via Telegram');
     }
 
     res.json({
@@ -145,9 +151,9 @@ ${transcript.substring(0, 500)}...
       leadId 
     }, 'Meeting processing failed');
     
-    // Отправляем ошибку админу
-    if (config.adminChatId) {
-      await sendMessage(config.adminChatId, 
+    // Отправляем ошибку в чат, откуда пришла команда (или админу как fallback)
+    if (reportChatId) {
+      await sendMessage(reportChatId, 
         `❌ Ошибка обработки встречи: ${meetingUrl}\nОшибка: ${e.message}`
       );
     }
