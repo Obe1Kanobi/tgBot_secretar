@@ -31,16 +31,29 @@ if (token) {
     
     logger.info('Telegram bot initialized successfully');
     
+    bot.onText(/\/help/, (msg) => {
+      const chatId = msg.chat.id;
+      logger.info({ chatId }, 'Received /help command');
+      bot.sendMessage(chatId, `/start - Начать работу с ботом
+        \n/process [ссылка_на_встречу] [ID_лида(для Битрикс24)] - Обработать встречу
+        \n/help - Получить справку
+        \n/test - Простая команда для тестирования`).catch(console.error);
+    });
+
     // Добавить ещё команд
     // Команда старта
     bot.onText(/\/start/, (msg) => {
       const chatId = msg.chat.id;
       logger.info({ chatId }, 'Received /start command');
-      bot.sendMessage(chatId, `🤖 Добро пожаловать в Meeting Bot!\n\nДля анализа встречи отправьте:\n/process [ссылка_на_встречу] [ID_лида]`).catch(console.error);
+      bot.sendMessage(chatId, `🤖 Добро пожаловать в Meeting Bot!
+        \n\nДля анализа встречи отправьте:
+        \n/process [ссылка_на_встречу] [ID_лида]
+        \n/help - подробная справка`).catch(console.error);
     });
 
     // Команда обработки встречи
-    bot.onText(/\/process (.+) (.+)/, async (msg, match) => {
+    // (?:@\S+)? — поддержка вызова в группах через /process@ИмяБота
+    bot.onText(/\/process(?:@\S+)?\s+(\S+)\s+(\S+)/, async (msg, match) => {
       const chatId = msg.chat.id;
       
       // Извлекаем и очищаем URL от лишних символов
@@ -57,14 +70,16 @@ if (token) {
       try {
         await bot.sendMessage(chatId, '🚀 Начинаю обработку встречи...');
         
-        // Используем внутренний URL для запроса
+        // Используем внутренний URL для запроса.
+        // Передаём chatId, чтобы отчёт пришёл в тот же чат, откуда вызвана команда
         const response = await axios.post(`http://localhost:${config.port}/process-meeting`, {
           meetingUrl,
-          leadId
+          leadId,
+          chatId
         });
         
         if (response.data.success) {
-          await bot.sendMessage(chatId, '✅ Встреча успешно обработана! Отчет отправлен администратору.');
+          await bot.sendMessage(chatId, '✅ Встреча успешно обработана! Отчет выше.');
           logger.info({ chatId, leadId }, 'Meeting processed successfully via Telegram');
         } else {
           await bot.sendMessage(chatId, `❌ Ошибка обработки: ${response.data.error}`);
