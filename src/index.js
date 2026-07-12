@@ -3,7 +3,6 @@ import pino from 'pino';
 import { openMeeting } from './browser.js';
 import { startPulseRecording, stopRecording } from './recording.js';
 import { transcribeAudio } from './transcribe.js';
-import { runChecklist } from './gemini.js';
 import { sendMessage } from './telegram.js';
 import { config } from './config.js';
 import { 
@@ -12,7 +11,6 @@ import {
   setupErrorHandling, 
   setupGracefulShutdown 
 } from './middleware.js';
-import { bitrixService } from './bitrix.js';
 
 // Logger configuration
 const logger = pino({
