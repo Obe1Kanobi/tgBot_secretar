@@ -1,6 +1,24 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { config } from './config.js';
 
+// import  { GoogleGenAI } from '@google/genai'
+
+// const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// const myfile = await ai.files.upload({
+//   file: path.join(media, "sample.mp3"),
+//   config: { mimeType: "audio/mpeg" },
+// });
+// console.log("Uploaded file:", myfile);
+
+// const result = await ai.models.generateContent({
+//   model: "gemini-3.5-flash",
+//   contents: createUserContent([
+//     createPartFromUri(myfile.uri, myfile.mimeType),
+//     "Describe this audio clip",
+//   ]),
+// });
+// console.log("result.text=", result.text);
+
 const client = new GoogleGenerativeAI(config.geminiApiKey);
 
 export async function runChecklist(transcript, logger) {
