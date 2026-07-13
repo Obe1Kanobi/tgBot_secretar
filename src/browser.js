@@ -39,9 +39,7 @@ export async function openMeeting({ url, logger }) {
       '--disable-backgrounding-occluded-windows',
       '--disable-renderer-backgrounding',
       '--disable-features=site-per-process',
-      '--allow-file-access-from-files',
-      '--disable-extensions-except=/path/to/extension',
-      '--load-extension=/path/to/extension'
+      '--allow-file-access-from-files'
     ]
   });
 
@@ -72,13 +70,12 @@ export async function openMeeting({ url, logger }) {
   logger.info({ url }, 'Opening meeting page...');
   
   try {
-    // Настраиваем разрешения через CDP
-    const client = await page.createCDPSession();
-    
-    await client.send('Browser.grantPermissions', {
-      origin: new URL(url).origin,
-      permissions: ['microphone', 'camera', 'notifications']
-    });
+    // Выдаём странице разрешения на микрофон/камеру через API Puppeteer
+    // (сырой CDP Browser.grantPermissions требует другие имена: audioCapture и т.п.)
+    await browser.defaultBrowserContext().overridePermissions(
+      new URL(url).origin,
+      ['microphone', 'camera', 'notifications']
+    );
 
     // Переходим на страницу встречи
     await page.goto(url, { 
@@ -404,7 +401,7 @@ async function joinTelemostMeeting(page, logger) {
 
     await sleep(8000);
 
-    // Отключаем микрофон
+    // Отключаем микрофон в Телемосте
     try {
       const micButton = await page.waitForSelector('[title*="микрофон"], [aria-label*="микрофон"]', { timeout: 5000 });
       if (micButton) {
