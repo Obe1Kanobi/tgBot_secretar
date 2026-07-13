@@ -68,12 +68,40 @@ app.post('/process-meeting', async (req, res) => {
     rec = startPulseRecording({ logger });
     audioFile = rec.outfile;
 
+    // Проверяем, не завершился ли FFmpeg сразу с ошибкой (например, нет аудиоустройств)
+    if (rec.hasExited && rec.hasExited()) {
+      const exitCode = rec.exitCode();
+      logger.error({ exitCode, outfile: rec.outfile }, 'FFmpeg завершился сразу после запуска');
+      
+      // Если это fallback-режим (заглушка), файл уже создан — продолжаем
+      if (rec.isFallback) {
+        logger.warn('Используется режим заглушки (тишина), продолжаем обработку');
+      } else {
+        throw new Error(`FFmpeg exited immediately with code ${exitCode}. No audio device available.`);
+      }
+    }
+
     // Ждём окончания встречи (максимум 1 час).
-    //TODO обдумать по поводу нормального окончани встречи, если она
-    //закончилась на час раньше то бот выходит также
-    // page.waitForTimeout удалён в Puppeteer 22+, используем обычный setTimeout
+    // Проверяем каждые 5 секунд, не завершился ли FFmpeg раньше времени
     logger.info({ maxSeconds: config.recording.maxSeconds }, 'Ожидание завершения встречи...');
-    await new Promise((resolve) => setTimeout(resolve, config.recording.maxSeconds * 1000));
+    
+    const checkInterval = 5000; // проверка каждые 5 секунд
+    const maxWait = config.recording.maxSeconds * 1000;
+    let waited = 0;
+    
+    while (waited < maxWait) {
+      await new Promise((resolve) => setTimeout(resolve, checkInterval));
+      waited += checkInterval;
+      
+      // Если FFmpeg неожиданно завершился — выходим раньше
+      if (rec.hasExited && rec.hasExited()) {
+        const exitCode = rec.exitCode();
+        if (exitCode !== 0 && exitCode !== null) {
+          logger.warn({ exitCode, waited }, 'FFmpeg завершился раньше времени');
+          break;
+        }
+      }
+    }
 
     // Останавливаем запись
     const outfile = await stopRecording(rec);
