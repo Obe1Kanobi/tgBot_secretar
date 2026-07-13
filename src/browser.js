@@ -369,37 +369,38 @@ async function joinTelemostMeeting(page, logger) {
   try {
     logger.info('Joining Yandex Telemost...');
 
-    // Вводим имя участника
+    // Вводим имя участника.
+    // ID вида react-aria...-:r8: случайные при каждой загрузке — опираемся на data-testid
     try {
-      // await page.waitForSelector('input[placeholder*="имя"], input[placeholder*="name"]', { timeout: 5000 });
-      // await page.type('input[placeholder*="имя"], input[placeholder*="name"]', 'Meeting Bot');
-      await page.waitForSelector('#react-aria9041631281-:r8:', { timeout: 5000 });
-      await page.type('#react-aria9041631281-:r8:', 'Meeting Bot');
+      const nameInput = await page.waitForSelector('[data-testid="orb-textinput-input"]', { timeout: 10000 });
+      // В поле уже подставлено «Гость» — выделяем всё тройным кликом и печатаем поверх
+      await nameInput.click({ clickCount: 3 });
+      await nameInput.type('Meeting Bot');
       logger.info('Entered name for Telemost');
     } catch (e) {
       logger.warn('Name input not found for Telemost');
     }
 
-    // Присоединяемся к встрече
-    const joinSelectors = [
-      'button:contains("Войти")',
-      'button:contains("Присоединиться")',
-      'button:contains("Подключиться")',
-      'button[type="submit"]',
-      '.join-button'
-    ];
-
+    // Присоединяемся: ищем кнопку по тексту
+    // (селекторы button:contains(...) в Puppeteer не работают — это jQuery-синтаксис)
     let joined = false;
-    for (const selector of joinSelectors) {
-      try {
-        await page.waitForSelector(selector, { timeout: 3000 });
-        await page.click(selector);
-        logger.info(`Clicked Telemost join button: ${selector}`);
-        joined = true;
-        break;
-      } catch (e) {
-        continue;
-      }
+    try {
+      joined = await page.evaluate(() => {
+        const buttons = Array.from(document.querySelectorAll('button, [role="button"]'));
+        const btn = buttons.find(b =>
+          b.textContent && /подключиться|присоединиться|войти|continue|join/i.test(b.textContent)
+        );
+        if (btn) { btn.click(); return true; }
+        return false;
+      });
+    } catch (e) {
+      logger.warn({ error: e.message }, 'Telemost join button search failed');
+    }
+
+    if (joined) {
+      logger.info('Clicked Telemost join button');
+    } else {
+      logger.warn('Telemost join button not found');
     }
 
     await sleep(8000);
