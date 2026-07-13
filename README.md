@@ -544,7 +544,7 @@ docker logs --tail 100 meeting-bot
 Вы пишете боту в Telegram:
 
 ```
-/process https://telemost.yandex.ru/j/12345 L67890
+/process https://telemost.yandex.ru/j/12345
 ```
 
 Дальше происходит следующее:

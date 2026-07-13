@@ -53,20 +53,21 @@ if (token) {
 
     // Команда обработки встречи
     // (?:@\S+)? — поддержка вызова в группах через /process@ИмяБота
-    bot.onText(/\/process(?:@\S+)?\s+(\S+)\s+(\S+)/, async (msg, match) => {
+    // Второй аргумент (leadId) необязательный: /process [ссылка] или /process [ссылка] [ID лида]
+    bot.onText(/\/process(?:@\S+)?\s+(\S+)(?:\s+(\S+))?/, async (msg, match) => {
       const chatId = msg.chat.id;
       
-      // Извлекаем и очищаем URL от лишних символов
-      let meetingUrl = match[1].replace(/[\[\]]/g, ''); // Удаляем квадратные скобки
-      // leadId для Битрикс24
-      // const leadId = match[2].replace(/[\[\]]/g, ''); // Удаляем квадратные скобки
+      // Извлекаем и очищаем URL от лишних символов (квадратные скобки)
+      let meetingUrl = match[1].replace(/[\[\]]/g, '');
+      // leadId для Битрикс24 — может отсутствовать
+      const leadId = match[2] ? match[2].replace(/[\[\]]/g, '') : null;
       
       // Проверяем, что URL начинается с http/https
       if (!meetingUrl.startsWith('http')) {
         meetingUrl = 'https://' + meetingUrl;
       }
       
-      logger.info({ meetingUrl, chatId }, 'Processing meeting request from Telegram');
+      logger.info({ meetingUrl, leadId, chatId }, 'Processing meeting request from Telegram');
       
       try {
         await bot.sendMessage(chatId, '🚀 Начинаю обработку встречи...');
@@ -75,6 +76,7 @@ if (token) {
         // Передаём chatId, чтобы отчёт пришёл в тот же чат, откуда вызвана команда
         const response = await axios.post(`http://localhost:${config.port}/process-meeting`, {
           meetingUrl,
+          leadId,
           chatId
         });
         
@@ -89,6 +91,16 @@ if (token) {
         logger.error({ chatId, error: error.message }, 'Error processing meeting via Telegram');
         await bot.sendMessage(chatId, `❌ Ошибка: ${error.response?.data?.error || error.message}`);
       }
+    });
+
+    // /process без аргументов — подсказываем формат
+    bot.onText(/^\/process(?:@\S+)?\s*$/, (msg) => {
+      const chatId = msg.chat.id;
+      logger.info({ chatId }, 'Received /process without arguments');
+      bot.sendMessage(chatId, `⚠️ Укажите ссылку на встречу:
+        \n/process https://telemost.yandex.ru/j/123456
+        \nили с ID лида Битрикс24:
+        \n/process https://telemost.yandex.ru/j/123456 L12345`).catch(console.error);
     });
 
     // Простая команда для тестирования
