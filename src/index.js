@@ -105,13 +105,8 @@ app.post('/process-meeting', async (req, res) => {
 🔗 Ссылка: ${meetingUrl}
 📝 Длина транскрипта: ${transcript.length} символов
 
-📋 Результаты анализа:
-${Object.entries(analysisResult.points || {}).map(([key, value]) => 
-  `${key}. ${value.score}/10 - ${value.comment?.substring(0, 50) || 'N/A'}...`
-).join('\n')}
-
-🎧 Транскрипт (первые 500 символов):
-${transcript.substring(0, 500)}...
+🎧 Транскрипт (первые 700 символов):
+${transcript.substring(0, 700)}...
     `.trim();
 
     // Отправляем отчет в чат, откуда пришла команда (или админу как fallback)
@@ -125,32 +120,26 @@ ${transcript.substring(0, 500)}...
       meetingUrl,
       // leadId,
       transcriptLength: transcript.length,
-      analysis: {
-        overallScore: analysisResult.overallScore,
-        category: analysisResult.category,
-        summary: analysisResult.summary,
-        pointsCount: Object.keys(analysisResult.points || {}).length
-      },
       // bitrixUpdated: !!(leadId && config.bitrix.webhookUrl)
     });
 
   } catch (e) {
-    logger.error({ 
-      err: e.message, 
+    logger.error({
+      err: e.message,
       stack: e.stack,
-      meetingUrl, 
-      // leadId 
+      meetingUrl,
+      // leadId
     }, 'Meeting processing failed');
     
     // Отправляем ошибку в чат, откуда пришла команда (или админу как fallback)
     if (reportChatId) {
-      await sendMessage(reportChatId, 
+      await sendMessage(reportChatId,
         `❌ Ошибка обработки встречи: ${meetingUrl}\nОшибка: ${e.message}`
       );
     }
     
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       error: 'PROCESSING_ERROR',
       message: e.message || 'Internal error',
       meetingUrl,
