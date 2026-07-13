@@ -14,7 +14,7 @@ const logger = pino({
 const token = config.telegramBotToken;
 let bot;
 
-logger.info({ tokenPresent: !!token }, 'Telegram bot initialization');
+logger.info({ tokenPresent: !!token }, 'Инициализация Telegram бота');
 
 if (token) {
   try {
@@ -29,11 +29,11 @@ if (token) {
       }
     });
     
-    logger.info('Telegram bot initialized successfully');
+    logger.info('Telegram бот успешно инициализирован');
     
     bot.onText(/\/help/, (msg) => {
       const chatId = msg.chat.id;
-      logger.info({ chatId }, 'Received /help command');
+      logger.info({ chatId }, 'Получена команда /help');
       bot.sendMessage(chatId, `/start - Начать работу с ботом
         \n/process [ссылка_на_встречу] - Обработать встречу
         \n/help - Получить справку
@@ -44,7 +44,7 @@ if (token) {
     // Команда старта
     bot.onText(/\/start/, (msg) => {
       const chatId = msg.chat.id;
-      logger.info({ chatId }, 'Received /start command');
+      logger.info({ chatId }, 'Получена команда /start');
       bot.sendMessage(chatId, `🤖 Добро пожаловать в Meeting Bot!
         \n\nДля анализа встречи отправьте:
         \n/process [ссылка_на_встречу]
@@ -67,7 +67,7 @@ if (token) {
         meetingUrl = 'https://' + meetingUrl;
       }
       
-      logger.info({ meetingUrl, leadId, chatId }, 'Processing meeting request from Telegram');
+      logger.info({ meetingUrl, leadId, chatId }, 'Обработка запроса на встречу из Telegram');
       
       try {
         await bot.sendMessage(chatId, '🚀 Начинаю обработку встречи...');
@@ -82,13 +82,13 @@ if (token) {
         
         if (response.data.success) {
           await bot.sendMessage(chatId, '✅ Встреча успешно обработана! Отчет выше.');
-          logger.info({ chatId }, 'Meeting processed successfully via Telegram');
+          logger.info({ chatId }, 'Встреча успешно обработана через Telegram');
         } else {
           await bot.sendMessage(chatId, `❌ Ошибка обработки: ${response.data.error}`);
-          logger.warn({ chatId, error: response.data.error }, 'Meeting processing failed');
+          logger.warn({ chatId, error: response.data.error }, 'Ошибка обработки встречи');
         }
       } catch (error) {
-        logger.error({ chatId, error: error.message }, 'Error processing meeting via Telegram');
+        logger.error({ chatId, error: error.message }, 'Ошибка при обработке встречи через Telegram');
         await bot.sendMessage(chatId, `❌ Ошибка: ${error.response?.data?.error || error.message}`);
       }
     });
@@ -96,7 +96,7 @@ if (token) {
     // /process без аргументов — подсказываем формат
     bot.onText(/^\/process(?:@\S+)?\s*$/, (msg) => {
       const chatId = msg.chat.id;
-      logger.info({ chatId }, 'Received /process without arguments');
+      logger.info({ chatId }, 'Получена команда /process без аргументов');
       bot.sendMessage(chatId, `⚠️ Укажите ссылку на встречу:
         \n/process https://telemost.yandex.ru/j/123456
         \nили с ID лида Битрикс24:
@@ -106,32 +106,32 @@ if (token) {
     // Простая команда для тестирования
     bot.onText(/\/test/, (msg) => {
       const chatId = msg.chat.id;
-      logger.info({ chatId }, 'Received /test command');
+      logger.info({ chatId }, 'Получена команда /test');
       bot.sendMessage(chatId, 'Бот работает корректно!').catch(console.error);
     });
 
     // Обработка ошибок бота
     bot.on('polling_error', (error) => {
-      logger.error({ error: error.message }, 'Telegram polling error');
+      logger.error({ error: error.message }, 'Ошибка polling Telegram');
     });
     
     bot.on('webhook_error', (error) => {
-      logger.error({ error: error.message }, 'Telegram webhook error');
+      logger.error({ error: error.message }, 'Ошибка webhook Telegram');
     });
     
-    logger.info('Telegram bot started successfully');
+    logger.info('Telegram бот успешно запущен');
 
   } catch (error) {
-    logger.error({ error: error.message }, 'Failed to initialize Telegram bot');
+    logger.error({ error: error.message }, 'Не удалось инициализировать Telegram бота');
   }
 } else {
-  logger.warn('TELEGRAM_BOT_TOKEN not set. Telegram bot will not start.');
+  logger.warn('TELEGRAM_BOT_TOKEN не установлен. Telegram бот не будет запущен.');
 }
 
 // Функция для отправки сообщений
 export async function sendMessage(chatId, message) {
   if (!bot) {
-    logger.warn({ chatId }, 'Bot not initialized, cannot send message');
+    logger.warn({ chatId }, 'Бот не инициализирован, невозможно отправить сообщение');
     return;
   }
   
@@ -147,7 +147,7 @@ export async function sendMessage(chatId, message) {
     }
     logger.debug({ chatId, messageLength: message.length }, 'Message sent to Telegram');
   } catch (error) {
-    logger.error({ chatId, error: error.message }, 'Error sending message to Telegram');
+    logger.error({ chatId, error: error.message }, 'Ошибка отправки сообщения в Telegram');
   }
 }
 

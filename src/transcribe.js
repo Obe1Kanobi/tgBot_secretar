@@ -6,7 +6,7 @@ const ai = new GoogleGenAI({ apiKey: config.geminiApiKey });
 
 export async function transcribeAudio(filePath, logger) {
   try {
-    logger.info({ filePath }, 'Starting audio transcription with Gemini');
+    logger.info({ filePath }, 'Запуск транскрипции аудио через Gemini');
 
     // Проверяем существование файла
     if (!fs.existsSync(filePath)) {
@@ -15,7 +15,7 @@ export async function transcribeAudio(filePath, logger) {
 
     // Получаем размер файла
     const stats = fs.statSync(filePath);
-    logger.info({ fileSize: stats.size }, 'Audio file size');
+    logger.info({ fileSize: stats.size }, 'Размер аудиофайла');
 
     // Читаем аудиофайл
     const audioBuffer = fs.readFileSync(filePath);
@@ -47,31 +47,31 @@ export async function transcribeAudio(filePath, logger) {
       throw new Error('Empty transcript received from Gemini');
     }
 
-    logger.info({ 
+    logger.info({
       transcriptLength: transcript.length,
       preview: transcript.substring(0, 200) + '...'
-    }, 'Transcription completed successfully');
+    }, 'Транскрипция успешно завершена');
 
     // Удаляем временный аудиофайл
     try {
       fs.unlinkSync(filePath);
-      logger.info({ filePath }, 'Temporary audio file deleted');
+      logger.info({ filePath }, 'Временный аудиофайл удалён');
     } catch (e) {
-      logger.warn({ filePath, error: e.message }, 'Could not delete temporary audio file');
+      logger.warn({ filePath, error: e.message }, 'Не удалось удалить временный аудиофайл');
     }
 
     return transcript;
 
   } catch (error) {
-    logger.error({ 
+    logger.error({
       error: error.message,
       filePath,
-      stack: error.stack 
-    }, 'Transcription failed');
+      stack: error.stack
+    }, 'Транскрипция не удалась');
 
     // В случае ошибки возвращаем текст-заглушку для демонстрации
     if (error.message.includes('API key') || error.message.includes('quota')) {
-      logger.warn('API issue detected, using demo transcript');
+      logger.warn('Обнаружена проблема с API, используется демо-транскрипт');
       return generateDemoTranscript();
     }
 

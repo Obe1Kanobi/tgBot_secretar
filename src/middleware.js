@@ -23,7 +23,7 @@ export function setupMiddleware(app) {
       contentSecurityPolicy: false, // Отключаем для API
       crossOriginEmbedderPolicy: false
     }));
-    logger.info('Helmet security middleware enabled');
+    logger.info('Helmet middleware безопасности включён');
   }
 
   // CORS configuration
@@ -35,7 +35,7 @@ export function setupMiddleware(app) {
     maxAge: 86400
   };
   app.use(cors(corsOptions));
-  logger.info({ corsOptions }, 'CORS middleware configured');
+  logger.info({ corsOptions }, 'CORS middleware настроен');
 
   // Rate limiting
   const limiter = rateLimit({
@@ -46,7 +46,7 @@ export function setupMiddleware(app) {
     legacyHeaders: false
   });
   app.use('/api/', limiter);
-  logger.info('Rate limiting middleware enabled for /api/ routes');
+  logger.info('Rate limiting middleware включён для /api/ маршрутов');
 
   // Body parser with size limit
   app.use(express.json({ 
@@ -66,7 +66,7 @@ export function setupMiddleware(app) {
         status: res.statusCode,
         duration,
         ip: req.ip
-      }, 'Request completed');
+      }, 'Запрос выполнен');
     });
     next();
   });
@@ -113,7 +113,7 @@ export function setupHealthCheck(app) {
         checks
       });
     } catch (error) {
-      logger.error({ error: error.message }, 'Deep health check failed');
+      logger.error({ error: error.message }, 'Глубокая проверка здоровья не удалась');
       res.status(503).json({
         status: 'unhealthy',
         error: error.message
@@ -121,7 +121,7 @@ export function setupHealthCheck(app) {
     }
   });
 
-  logger.info('Health check endpoints configured');
+  logger.info('Health check endpoints настроены');
 }
 
 /**
@@ -130,7 +130,7 @@ export function setupHealthCheck(app) {
 export function setupErrorHandling(app) {
   // 404 handler
   app.use((req, res) => {
-    logger.warn({ url: req.url, method: req.method }, 'Route not found');
+    logger.warn({ url: req.url, method: req.method }, 'Маршрут не найден');
     res.status(404).json({
       error: 'Not Found',
       message: `Route ${req.method} ${req.url} not found`
@@ -144,7 +144,7 @@ export function setupErrorHandling(app) {
       stack: err.stack,
       url: req.url,
       method: req.method
-    }, 'Unhandled error');
+    }, 'Необработанная ошибка');
 
     const statusCode = err.statusCode || err.status || 500;
     
@@ -157,7 +157,7 @@ export function setupErrorHandling(app) {
     });
   });
 
-  logger.info('Error handling middleware configured');
+  logger.info('Middleware обработки ошибок настроен');
 }
 
 /**
@@ -167,26 +167,26 @@ export function setupGracefulShutdown(server) {
   const shutdownTimeout = Number(process.env.SHUTDOWN_TIMEOUT) || 30000;
 
   const shutdown = async (signal) => {
-    logger.info({ signal }, 'Graceful shutdown initiated');
+    logger.info({ signal }, 'Инициировано плавное завершение работы');
     
     setTimeout(() => {
-      logger.error('Forced shutdown due to timeout');
+      logger.error('Принудительное завершение из-за таймаута');
       process.exit(1);
     }, shutdownTimeout);
 
     try {
       server.close(async () => {
-        logger.info('HTTP server closed');
+        logger.info('HTTP сервер закрыт');
         
         // Закрытие соединений с БД, очистка ресурсов и т.д.
         // await closeDatabaseConnections();
         // await cleanupResources();
         
-        logger.info('All resources cleaned up');
+        logger.info('Все ресурсы очищены');
         process.exit(0);
       });
     } catch (error) {
-      logger.error({ error: error.message }, 'Error during shutdown');
+      logger.error({ error: error.message }, 'Ошибка при завершении работы');
       process.exit(1);
     }
   };
@@ -205,5 +205,5 @@ export function setupGracefulShutdown(server) {
     process.exit(1);
   });
 
-  logger.info('Graceful shutdown handlers configured');
+  logger.info('Обработчики плавного завершения настроены');
 }

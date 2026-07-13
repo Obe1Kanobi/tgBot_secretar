@@ -28,20 +28,20 @@ export function startPulseRecording({ logger: externalLogger }) {
   // Создаем директорию если не существует
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
-    logger.info({ dir }, 'Created recordings directory');
+    logger.info({ dir }, 'Создана директория для записей');
   }
   
   const outfile = path.join(dir, `${id}.wav`);
 
   // Сначала проверяем доступные аудио устройства
-  logger.info('Checking available audio devices...');
+  logger.info('Проверка доступных аудиоустройств...');
   
   const listDevices = spawn('pactl', ['list', 'short', 'sources'], {
     stdio: ['ignore', 'pipe', 'pipe']
   });
 
   listDevices.stdout.on('data', (data) => {
-    logger.info({ devices: data.toString() }, 'Available audio sources');
+    logger.info({ devices: data.toString() }, 'Доступные источники аудио');
   });
 
   // Улучшенные параметры для записи системного звука
@@ -57,7 +57,7 @@ export function startPulseRecording({ logger: externalLogger }) {
     outfile
   ];
 
-  logger.info({ args, outfile }, 'Starting FFmpeg recording...');
+  logger.info({ args, outfile }, 'Запуск записи FFmpeg...');
 
   const ff = spawn('ffmpeg', args, { 
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -73,45 +73,45 @@ export function startPulseRecording({ logger: externalLogger }) {
   ff.stderr.on('data', (data) => {
     const message = data.toString().trim();
     if (message.includes('time=')) {
-      logger.debug({ progress: message }, 'Recording progress');
+      logger.debug({ progress: message }, 'Запись прогресса');
     } else if (message.includes('error') || message.includes('Error')) {
-      logger.error({ error: message }, 'FFmpeg error');
+      logger.error({ error: message }, 'Ошибка FFmpeg');
     } else {
       logger.debug({ stderr: message }, 'FFmpeg stderr');
     }
   });
 
   ff.on('error', (error) => {
-    logger.error({ error: error.message }, 'FFmpeg spawn error');
+    logger.error({ error: error.message }, 'Ошибка запуска FFmpeg');
     isRecording = false;
   });
 
   ff.on('exit', (code, signal) => {
     isRecording = false;
     if (code === 0) {
-      logger.info({ outfile, code }, 'Recording completed successfully');
+      logger.info({ outfile, code }, 'Запись успешно завершена');
     } else if (signal) {
-      logger.info({ outfile, signal }, 'Recording stopped by signal');
+      logger.info({ outfile, signal }, 'Запись остановлена по сигналу');
     } else {
-      logger.warn({ code, outfile }, 'FFmpeg exited with non-zero code');
+      logger.warn({ code, outfile }, 'FFmpeg завершился с ненулевым кодом');
     }
   });
 
   ff.on('close', (code) => {
     isRecording = false;
-    logger.info({ code, outfile }, 'FFmpeg process closed');
+    logger.info({ code, outfile }, 'Процесс FFmpeg закрыт');
   });
 
-  logger.info({ outfile, pid: ff.pid }, 'Recording started successfully');
+  logger.info({ outfile, pid: ff.pid }, 'Запись успешно запущена');
   
   return { 
     stop: () => {
       if (ff && !ff.killed && isRecording) {
-        logger.info({ pid: ff.pid }, 'Stopping recording...');
+        logger.info({ pid: ff.pid }, 'Остановка записи...');
         ff.kill('SIGTERM'); // Мягкая остановка
         setTimeout(() => {
           if (!ff.killed && isRecording) {
-            logger.warn({ pid: ff.pid }, 'Force killing FFmpeg process');
+            logger.warn({ pid: ff.pid }, 'Принудительное завершение процесса FFmpeg');
             ff.kill('SIGKILL');
           }
         }, 5000);
@@ -128,7 +128,7 @@ export async function stopRecording(rec) {
     return null;
   }
 
-  logger.info({ pid: rec.pid }, 'Stopping recording...');
+  logger.info({ pid: rec.pid }, 'Остановка записи...');
   
   if (rec.stop && typeof rec.stop === 'function') {
     rec.stop();
@@ -144,26 +144,26 @@ export async function stopRecording(rec) {
   }
 
   if (attempts >= maxAttempts) {
-    logger.warn('Recording stop timeout, but continuing...');
+    logger.warn('Таймаут остановки записи, но продолжаем...');
   }
 
   // Проверяем существование файла
   if (fs.existsSync(rec.outfile)) {
     const stats = fs.statSync(rec.outfile);
-    logger.info({ 
-      outfile: rec.outfile, 
+    logger.info({
+      outfile: rec.outfile,
       size: stats.size,
       duration: `${Math.round(stats.size / 32000)} seconds (estimated)`
-    }, 'Recording file ready');
+    }, 'Файл записи готов');
     
     if (stats.size === 0) {
-      logger.error('Recording file is empty');
-      throw new Error('Recording file is empty');
+      logger.error('Файл записи пуст');
+      throw new Error('Файл записи пуст');
     }
     
     return rec.outfile;
   } else {
-    logger.error({ outfile: rec.outfile }, 'Recording file does not exist');
+    logger.error({ rec: rec, outfile: rec.outfile }, 'Файл записи не существует');
     throw new Error('Recording file was not created');
   }
 }
@@ -171,7 +171,7 @@ export async function stopRecording(rec) {
 // Альтернативный метод записи через Web Audio API (для браузера)
 export async function startWebAudioRecording(page, logger) {
   try {
-    logger.info('Starting web audio recording...');
+    logger.info('Запуск веб-записи аудио...');
     
     await page.evaluate(() => {
       return new Promise((resolve, reject) => {
@@ -202,18 +202,18 @@ export async function startWebAudioRecording(page, logger) {
       });
     });
     
-    logger.info('Web audio recording started');
+    logger.info('Веб-запись аудио запущена');
     return true;
     
   } catch (error) {
-    logger.error({ error: error.message }, 'Web audio recording failed');
+    logger.error({ error: error.message }, 'Веб-запись аудио не удалась');
     return false;
   }
 }
 
 export async function stopWebAudioRecording(page, logger) {
   try {
-    logger.info('Stopping web audio recording...');
+    logger.info('Остановка веб-записи аудио...');
     
     const audioData = await page.evaluate(() => {
       return new Promise((resolve) => {
@@ -244,7 +244,7 @@ export async function stopWebAudioRecording(page, logger) {
       const outfile = path.join(dir, `${id}.webm`);
       
       fs.writeFileSync(outfile, buffer);
-      logger.info({ outfile, size: buffer.length }, 'Web audio recording saved');
+      logger.info({ outfile, size: buffer.length }, 'Веб-запись аудио сохранена');
       
       return outfile;
     }
@@ -252,7 +252,7 @@ export async function stopWebAudioRecording(page, logger) {
     return null;
     
   } catch (error) {
-    logger.error({ error: error.message }, 'Failed to stop web audio recording');
+    logger.error({ error: error.message }, 'Не удалось остановить веб-запись аудио');
     return null;
   }
 }

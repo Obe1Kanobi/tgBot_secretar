@@ -38,7 +38,7 @@ app.post('/process-meeting', async (req, res) => {
   
   // Validation
   if (!meetingUrl) {
-    logger.warn({ meetingUrl /* , leadId */ }, 'Missing meetingUrl in request');
+    logger.warn({ meetingUrl /* , leadId */ }, 'Отсутствует meetingUrl в запросе');
     return res.status(400).json({ 
       error: 'VALIDATION_ERROR',
       message: 'meetingUrl is required',
@@ -50,14 +50,14 @@ app.post('/process-meeting', async (req, res) => {
   try {
     new URL(meetingUrl);
   } catch (e) {
-    logger.warn({ meetingUrl }, 'Invalid URL format');
+    logger.warn({ meetingUrl: meetingUrl }, 'Неверный формат URL');
     return res.status(400).json({ 
       error: 'INVALID_URL',
       message: 'meetingUrl must be a valid URL'
     });
   }
   
-  logger.info({ meetingUrl /* , leadId */ }, 'Meeting processing request received');
+  logger.info({ meetingUrl: meetingUrl /* , leadId */ }, 'Получен запрос на обработку встречи');
 
   let browser, page, rec, audioFile;
   try {
@@ -72,16 +72,16 @@ app.post('/process-meeting', async (req, res) => {
     //TODO обдумать по поводу нормального окончани встречи, если она
     //закончилась на час раньше то бот выходит также
     // page.waitForTimeout удалён в Puppeteer 22+, используем обычный setTimeout
-    logger.info({ maxSeconds: config.recording.maxSeconds }, 'Waiting for meeting to complete...');
+    logger.info({ maxSeconds: config.recording.maxSeconds }, 'Ожидание завершения встречи...');
     await new Promise((resolve) => setTimeout(resolve, config.recording.maxSeconds * 1000));
 
     // Останавливаем запись
     const outfile = await stopRecording(rec);
-    logger.info({ outfile }, 'Recording saved');
+    logger.info({ outfile }, 'Запись сохранена');
 
     // Транскрипт через Gemini
     const transcript = await transcribeAudio(outfile, logger);
-    logger.info({ transcriptLength: transcript.length }, 'Transcript received');
+    logger.info({ transcriptLength: transcript.length }, 'Транскрипт получен');
 
     // Анализ по чек-листу через Gemini
     // const analysisResult = await runChecklist(transcript, logger);
@@ -112,7 +112,7 @@ ${transcript.substring(0, 700)}...
     // Отправляем отчет в чат, откуда пришла команда (или админу как fallback)
     if (reportChatId) {
       await sendMessage(reportChatId, reportMessage);
-      logger.info({ reportChatId }, 'Report sent via Telegram');
+      logger.info({ reportChatId: reportChatId }, 'Отчёт отправлен через Telegram');
     }
 
     res.json({
@@ -129,7 +129,7 @@ ${transcript.substring(0, 700)}...
       stack: e.stack,
       meetingUrl,
       // leadId
-    }, 'Meeting processing failed');
+    }, 'Ошибка обработки встречи');
     
     // Отправляем ошибку в чат, откуда пришла команда (или админу как fallback)
     if (reportChatId) {
@@ -156,13 +156,13 @@ ${transcript.substring(0, 700)}...
     try { if (page) await page.close(); } catch (_) {}
     try { if (browser) await browser.close(); } catch (_) {}
     
-    logger.info({ meetingUrl }, 'Meeting processing cleanup completed');
+    logger.info({ meetingUrl }, 'Очистка после обработки встречи завершена');
   }
 });
 
 // Запускаем сервер с graceful shutdown
 const server = app.listen(config.port, () => {
-  logger.info({ port: config.port, env: process.env.NODE_ENV }, 'Server started');
+  logger.info({ port: config.port, env: process.env.NODE_ENV }, 'Сервер запущен');
 });
 
 // Setup graceful shutdown handlers

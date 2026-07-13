@@ -14,7 +14,7 @@ export async function openMeeting({ url, logger }) {
 
   // Определяем тип платформы встреч
   const platform = detectMeetingPlatform(url);
-  logger.info({ url, platform }, 'Detected meeting platform');
+  logger.info({ url, platform }, 'Определена платформа встречи');
 
   const browser = await puppeteer.launch({
     executablePath: config.chromiumPath,
@@ -67,7 +67,7 @@ export async function openMeeting({ url, logger }) {
     });
   });
 
-  logger.info({ url }, 'Opening meeting page...');
+  logger.info({ url }, 'Открытие страницы встречи...');
   
   try {
     // Выдаём странице разрешения на микрофон/камеру через API Puppeteer
@@ -110,11 +110,11 @@ export async function openMeeting({ url, logger }) {
     // Настраиваем запись звука
     await setupAudioCapture(page, logger);
 
-    logger.info('Successfully joined the meeting');
+    logger.info('Успешно присоединились к встрече');
     return { browser, page };
 
   } catch (error) {
-    logger.error({ error: error.message }, 'Failed to join meeting');
+    logger.error({ error: error.message }, 'Не удалось присоединиться к встрече');
     await browser.close();
     throw new Error(`Failed to join meeting: ${error.message}`);
   }
@@ -134,25 +134,25 @@ function detectMeetingPlatform(url) {
 
 async function joinZoomMeeting(page, logger) {
   try {
-    logger.info('Joining Zoom meeting...');
+    logger.info('Присоединение к Zoom встрече...');
     
     // Ждем кнопку "Join from Your Browser"
     try {
       await page.waitForSelector('a[href*="wc/join"]', { timeout: 10000 });
       await page.click('a[href*="wc/join"]');
-      logger.info('Clicked "Join from Browser" for Zoom');
+      logger.info('Нажата кнопка "Join from Browser" для Zoom');
       await sleep(3000);
     } catch (e) {
-      logger.warn('Browser join link not found, continuing...');
+      logger.warn('Ссылка на браузерное подключение не найдена, продолжаем...');
     }
 
     // Вводим имя участника
     try {
       await page.waitForSelector('#inputname', { timeout: 5000 });
       await page.type('#inputname', 'Meeting Bot');
-      logger.info('Entered participant name');
+      logger.info('Введено имя участника');
     } catch (e) {
-      logger.warn('Name input not found');
+      logger.warn('Поле ввода имени не найдено');
     }
 
     // Кликаем кнопку присоединения
@@ -170,7 +170,7 @@ async function joinZoomMeeting(page, logger) {
       try {
         await page.waitForSelector(selector, { timeout: 3000 });
         await page.click(selector);
-        logger.info(`Clicked Zoom join button: ${selector}`);
+        logger.info(`Нажата кнопка присоединения Zoom: ${selector}`);
         joined = true;
         break;
       } catch (e) {
@@ -188,7 +188,7 @@ async function joinZoomMeeting(page, logger) {
         );
         if (joinButton) joinButton.click();
       });
-      logger.info('Used JavaScript fallback for Zoom join');
+      logger.info('Использован JavaScript fallback для присоединения к Zoom');
     }
 
     await sleep(8000);
@@ -198,20 +198,20 @@ async function joinZoomMeeting(page, logger) {
       const muteButton = await page.waitForSelector('button[aria-label*="Mute"], button[aria-label*="mute"]', { timeout: 5000 });
       if (muteButton) {
         await muteButton.click();
-        logger.info('Muted microphone in Zoom');
+        logger.info('Микрофон отключён в Zoom');
       }
     } catch (e) {
-      logger.warn('Could not mute microphone in Zoom');
+      logger.warn('Не удалось отключить микрофон в Zoom');
     }
 
     try {
       const videoButton = await page.waitForSelector('button[aria-label*="camera"], button[aria-label*="video"]', { timeout: 5000 });
       if (videoButton) {
         await videoButton.click();
-        logger.info('Disabled camera in Zoom');
+        logger.info('Камера отключена в Zoom');
       }
     } catch (e) {
-      logger.warn('Could not disable camera in Zoom');
+      logger.warn('Не удалось отключить камеру в Zoom');
     }
 
   } catch (error) {
@@ -221,7 +221,7 @@ async function joinZoomMeeting(page, logger) {
 
 async function joinGoogleMeeting(page, logger) {
   try {
-    logger.info('Joining Google Meet...');
+    logger.info('Присоединение к Google Meet...');
 
     // Отключаем микрофон и камеру до присоединения
     try {
@@ -231,11 +231,11 @@ async function joinGoogleMeeting(page, logger) {
         const isMuted = await page.evaluate(btn => btn.getAttribute('aria-pressed') === 'true', micButton);
         if (!isMuted) {
           await micButton.click();
-          logger.info('Muted microphone before joining Google Meet');
+          logger.info('Микрофон отключён перед присоединением к Google Meet');
         }
       }
     } catch (e) {
-      logger.warn('Could not find microphone button before joining');
+      logger.warn('Не удалось найти кнопку микрофона перед присоединением');
     }
 
     try {
@@ -245,11 +245,11 @@ async function joinGoogleMeeting(page, logger) {
         const isCameraOff = await page.evaluate(btn => btn.getAttribute('aria-pressed') === 'false', cameraButton);
         if (!isCameraOff) {
           await cameraButton.click();
-          logger.info('Disabled camera before joining Google Meet');
+          logger.info('Камера отключена перед присоединением к Google Meet');
         }
       }
     } catch (e) {
-      logger.warn('Could not find camera button before joining');
+      logger.warn('Не удалось найти кнопку камеры перед присоединением');
     }
 
     // Присоединяемся к встрече
@@ -267,7 +267,7 @@ async function joinGoogleMeeting(page, logger) {
       try {
         await page.waitForSelector(selector, { timeout: 3000 });
         await page.click(selector);
-        logger.info(`Clicked Google Meet join button: ${selector}`);
+        logger.info(`Нажата кнопка присоединения Google Meet: ${selector}`);
         joined = true;
         break;
       } catch (e) {
@@ -283,7 +283,7 @@ async function joinGoogleMeeting(page, logger) {
         );
         if (joinButton) joinButton.click();
       });
-      logger.info('Used JavaScript fallback for Google Meet join');
+      logger.info('Использован JavaScript fallback для присоединения к Google Meet');
     }
 
     await sleep(8000);
@@ -295,25 +295,25 @@ async function joinGoogleMeeting(page, logger) {
 
 async function joinTeamsMeeting(page, logger) {
   try {
-    logger.info('Joining Microsoft Teams...');
+    logger.info('Присоединение к Microsoft Teams...');
 
     // Выбираем "Join on the web instead"
     try {
       await page.waitForSelector('a[href*="launcher/launcher.html"]', { timeout: 10000 });
       await page.click('a[href*="launcher/launcher.html"]');
-      logger.info('Clicked "Join on the web" for Teams');
+      logger.info('Нажата кнопка "Join on the web" для Teams');
       await sleep(3000);
     } catch (e) {
-      logger.warn('Web join link not found for Teams');
+      logger.warn('Ссылка на веб-подключение не найдена для Teams');
     }
 
     // Вводим имя
     try {
       await page.waitForSelector('#displayName', { timeout: 5000 });
       await page.type('#displayName', 'Meeting Bot');
-      logger.info('Entered name for Teams');
+      logger.info('Введено имя для Teams');
     } catch (e) {
-      logger.warn('Name input not found for Teams');
+      logger.warn('Поле ввода имени не найдено для Teams');
     }
 
     // Отключаем камеру и микрофон
@@ -321,20 +321,20 @@ async function joinTeamsMeeting(page, logger) {
       const micToggle = await page.waitForSelector('[data-tid="toggle-mute"]', { timeout: 3000 });
       if (micToggle) {
         await micToggle.click();
-        logger.info('Muted microphone in Teams');
+        logger.info('Микрофон отключён в Teams');
       }
     } catch (e) {
-      logger.warn('Could not mute microphone in Teams');
+      logger.warn('Не удалось отключить микрофон в Teams');
     }
 
     try {
       const cameraToggle = await page.waitForSelector('[data-tid="toggle-video"]', { timeout: 3000 });
       if (cameraToggle) {
         await cameraToggle.click();
-        logger.info('Disabled camera in Teams');
+        logger.info('Камера отключена в Teams');
       }
     } catch (e) {
-      logger.warn('Could not disable camera in Teams');
+      logger.warn('Не удалось отключить камеру в Teams');
     }
 
     // Присоединяемся
@@ -350,7 +350,7 @@ async function joinTeamsMeeting(page, logger) {
       try {
         await page.waitForSelector(selector, { timeout: 3000 });
         await page.click(selector);
-        logger.info(`Clicked Teams join button: ${selector}`);
+        logger.info(`Нажата кнопка присоединения Teams: ${selector}`);
         joined = true;
         break;
       } catch (e) {
@@ -367,7 +367,7 @@ async function joinTeamsMeeting(page, logger) {
 
 async function joinTelemostMeeting(page, logger) {
   try {
-    logger.info('Joining Yandex Telemost...');
+    logger.info('Присоединение к Yandex Telemost...');
 
     // Вводим имя участника.
     // ID вида react-aria...-:r8: случайные при каждой загрузке — опираемся на data-testid
@@ -376,9 +376,9 @@ async function joinTelemostMeeting(page, logger) {
       // В поле уже подставлено «Гость» — выделяем всё тройным кликом и печатаем поверх
       await nameInput.click({ clickCount: 3 });
       await nameInput.type('Meeting Bot');
-      logger.info('Entered name for Telemost');
+      logger.info('Введено имя для Telemost');
     } catch (e) {
-      logger.warn('Name input not found for Telemost');
+      logger.warn('Поле ввода имени не найдено для Telemost');
     }
 
     // Присоединяемся: ищем кнопку по тексту
@@ -394,13 +394,13 @@ async function joinTelemostMeeting(page, logger) {
         return false;
       });
     } catch (e) {
-      logger.warn({ error: e.message }, 'Telemost join button search failed');
+      logger.warn({ error: e.message }, 'Поиск кнопки присоединения Telemost не удался');
     }
 
     if (joined) {
-      logger.info('Clicked Telemost join button');
+      logger.info('Нажата кнопка присоединения Telemost');
     } else {
-      logger.warn('Telemost join button not found');
+      logger.warn('Кнопка присоединения Telemost не найдена');
     }
 
     await sleep(8000);
@@ -410,10 +410,10 @@ async function joinTelemostMeeting(page, logger) {
       const micButton = await page.waitForSelector('[title*="микрофон"], [aria-label*="микрофон"]', { timeout: 5000 });
       if (micButton) {
         await micButton.click();
-        logger.info('Muted microphone in Telemost');
+        logger.info('Микрофон отключён в Telemost');
       }
     } catch (e) {
-      logger.warn('Could not mute microphone in Telemost');
+      logger.warn('Не удалось отключить микрофон в Telemost');
     }
 
   } catch (error) {
@@ -423,15 +423,15 @@ async function joinTelemostMeeting(page, logger) {
 
 async function joinContourMeeting(page, logger) {
   try {
-    logger.info('Joining Contour Talk...');
+    logger.info('Присоединение к Contour Talk...');
 
     // Вводим имя участника
     try {
       await page.waitForSelector('input[name="name"], input[placeholder*="имя"]', { timeout: 5000 });
       await page.type('input[name="name"], input[placeholder*="имя"]', 'Meeting Bot');
-      logger.info('Entered name for Contour');
+      logger.info('Введено имя для Contour');
     } catch (e) {
-      logger.warn('Name input not found for Contour');
+      logger.warn('Поле ввода имени не найдено для Contour');
     }
 
     // Присоединяемся к встрече
@@ -447,7 +447,7 @@ async function joinContourMeeting(page, logger) {
       try {
         await page.waitForSelector(selector, { timeout: 3000 });
         await page.click(selector);
-        logger.info(`Clicked Contour join button: ${selector}`);
+        logger.info(`Нажата кнопка присоединения Contour: ${selector}`);
         joined = true;
         break;
       } catch (e) {
@@ -464,7 +464,7 @@ async function joinContourMeeting(page, logger) {
 
 async function joinGenericMeeting(page, logger) {
   try {
-    logger.info('Joining generic meeting...');
+    logger.info('Присоединение к обычной встрече...');
 
     // Универсальные селекторы для присоединения
     const joinSelectors = [
@@ -488,7 +488,7 @@ async function joinGenericMeeting(page, logger) {
       try {
         await page.waitForSelector(selector, { timeout: 3000 });
         await page.click(selector);
-        logger.info(`Clicked generic join button: ${selector}`);
+        logger.info(`Нажата кнопка присоединения: ${selector}`);
         joined = true;
         await sleep(3000);
         break;
@@ -508,13 +508,13 @@ async function joinGenericMeeting(page, logger) {
         );
         if (joinButton) joinButton.click();
       });
-      logger.info('Used JavaScript fallback for generic meeting');
+      logger.info('Использован JavaScript fallback для присоединения');
     }
 
     await sleep(8000);
 
   } catch (error) {
-    logger.warn(`Generic meeting join had issues: ${error.message}`);
+    logger.warn(`Проблемы при присоединении к встрече: ${error.message}`);
   }
 }
 
@@ -532,8 +532,8 @@ async function setupAudioCapture(page, logger) {
       }
     });
 
-    logger.info('Audio capture setup completed');
+    logger.info('Настройка захвата аудио завершена');
   } catch (error) {
-    logger.warn(`Audio capture setup failed: ${error.message}`);
+    logger.warn(`Настройка захвата аудио не удалась: ${error.message}`);
   }
 }
