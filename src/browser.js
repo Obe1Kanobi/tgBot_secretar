@@ -371,8 +371,10 @@ async function joinTelemostMeeting(page, logger) {
 
     // Вводим имя участника
     try {
-      await page.waitForSelector('input[placeholder*="имя"], input[placeholder*="name"]', { timeout: 5000 });
-      await page.type('input[placeholder*="имя"], input[placeholder*="name"]', 'Meeting Bot');
+      // await page.waitForSelector('input[placeholder*="имя"], input[placeholder*="name"]', { timeout: 5000 });
+      // await page.type('input[placeholder*="имя"], input[placeholder*="name"]', 'Meeting Bot');
+      await page.waitForSelector('#react-aria9041631281-:r8:', { timeout: 5000 });
+      await page.type('#react-aria9041631281-:r8:', 'Meeting Bot');
       logger.info('Entered name for Telemost');
     } catch (e) {
       logger.warn('Name input not found for Telemost');
@@ -382,6 +384,7 @@ async function joinTelemostMeeting(page, logger) {
     const joinSelectors = [
       'button:contains("Войти")',
       'button:contains("Присоединиться")',
+      'button:contains("Подключиться")',
       'button[type="submit"]',
       '.join-button'
     ];
