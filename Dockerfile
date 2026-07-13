@@ -1,4 +1,4 @@
-FROM node:18-bullseye
+FROM node:20-bullseye
 
 # Установка системных зависимостей
 RUN apt-get update && \
@@ -24,7 +24,7 @@ WORKDIR /app
 
 # Копирование package.json и установка зависимостей
 COPY package*.json ./
-RUN npm install --production
+RUN npm install --omit=dev && npm install -g npm@latest
 
 # Копирование исходного кода
 COPY . .
