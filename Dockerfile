@@ -47,4 +47,7 @@ RUN mkdir -p /etc/pulse && \
 EXPOSE 10000
 
 # Запуск приложения
-CMD ["sh", "-c", "pulseaudio --start --exit-idle-time=-1 --system --disallow-exit 2>/dev/null || true; rm -f /tmp/.X99-lock; Xvfb :99 -screen 0 1024x768x16 -ac & export DISPLAY=:99; sleep 2; npm start"]
+# PulseAudio: флаги --start/--system несовместимы, запускаем демон в пользовательском
+# режиме (-D); он подхватит /etc/pulse/default.pa с virtual_sink. Важно поднять его ДО
+# Chrome, чтобы браузер сразу выводил звук встречи в virtual_sink
+CMD ["sh", "-c", "rm -f /tmp/.X99-lock; Xvfb :99 -screen 0 1024x768x16 -ac & export DISPLAY=:99; pulseaudio -D --exit-idle-time=-1 --disallow-exit || true; sleep 2; pactl list short sinks || true; npm start"]

@@ -27,25 +27,26 @@ function ensurePulseAudioSource() {
   } catch {
     logger.warn('PulseAudio не запущен, пробуем запустить...');
     try {
-      execSync('pulseaudio --start --exit-idle-time=-1 --system 2>/dev/null', {
-        stdio: 'pipe', timeout: 5000
+      // --start и --system несовместимы; запускаем демон в пользовательском режиме
+      execSync('pulseaudio -D --exit-idle-time=-1 --disallow-exit', {
+        stdio: 'pipe', timeout: 10000
       });
       // Даём время на инициализацию
-      execSync('sleep 1', { stdio: 'pipe', timeout: 3000 });
+      execSync('sleep 2', { stdio: 'pipe', timeout: 5000 });
     } catch (e) {
       logger.error({ error: e.message }, 'Не удалось запустить PulseAudio');
       return false;
     }
   }
 
-  // Проверяем, есть ли хотя бы один источник (source)
+  // Проверяем, есть ли именно наш virtual_sink.monitor (ffmpeg пишет с него)
   try {
     const sources = execSync('pactl list short sources', {
       encoding: 'utf8', stdio: 'pipe', timeout: 5000
     });
     
-    if (sources.trim()) {
-      logger.info({ sources: sources.trim().split('\n') }, 'Найдены источники аудио');
+    if (sources.includes('virtual_sink.monitor')) {
+      logger.info({ sources: sources.trim().split('\n') }, 'virtual_sink.monitor найден');
       return true;
     }
   } catch {
@@ -58,7 +59,9 @@ function ensurePulseAudioSource() {
     execSync('pactl load-module module-null-sink sink_name=virtual_sink sink_properties=device.description=Virtual_Sink', {
       stdio: 'pipe', timeout: 5000
     });
-    logger.info('Виртуальный sink создан');
+    // Делаем его устройством вывода по умолчанию, чтобы звук Chrome шёл в него
+    execSync('pactl set-default-sink virtual_sink', { stdio: 'pipe', timeout: 5000 });
+    logger.info('Виртуальный sink создан и назначен по умолчанию');
     
     // Проверяем, что monitor появился
     const sources = execSync('pactl list short sources', {
@@ -342,7 +345,7 @@ export async function stopRecording(rec) {
     return rec.outfile;
   } else {
     logger.error({ rec: rec, outfile: rec.outfile }, 'Файл записи не существует');
-    throw new Error('Recording file was not created');
+    throw new Error('Файл записи не создан');
   }
 }
 

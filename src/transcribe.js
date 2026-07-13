@@ -29,7 +29,7 @@ export async function transcribeAudio(filePath, logger) {
     `.trim();
 
     const result = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: config.geminiModel,
       contents: [
         {
           role: 'user',
