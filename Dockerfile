@@ -24,7 +24,7 @@ WORKDIR /app
 
 # Копирование package.json и установка зависимостей
 COPY package*.json ./
-RUN npm install --omit=dev && npm install -g npm@latest
+RUN npm install --omit=dev
 
 # Копирование исходного кода
 COPY . .
