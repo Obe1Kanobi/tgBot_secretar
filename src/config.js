@@ -2,9 +2,8 @@ export const config = {
   port: process.env.PORT || 3000,
   chromiumPath: process.env.CHROME_BIN || '/usr/bin/google-chrome-stable',
   geminiApiKey: process.env.GEMINI_API_KEY,
-  // gemini-2.5-flash закрыта для новых пользователей (отключение 16.10.2026),
-  // актуальная стабильная замена — gemini-3.5-flash
-  geminiModel: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
+  // актуальная стабильная версия — gemini-3.8-flash
+  geminiModel: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
   recording: {
     outDir: process.env.REC_DIR || '/tmp/recordings',
     maxSeconds: Number(process.env.REC_MAX_SECONDS || 3600)
@@ -15,6 +14,13 @@ export const config = {
   
   // Настройки Битрикс24
   bitrix: {
+    // Мастер-флаг интеграции с Битрикс24.
+    // Включает/выключает весь функционал Битрикс24 (анализ по чек-листу,
+    // обновление лидов, активности и задачи) без комментирования кода.
+    // Стартовое значение берётся из .env (BITRIX_ENABLED=true),
+    // переключается на лету командой /bitrix on|off в Telegram.
+    enabled: process.env.BITRIX_ENABLED === 'true',
+
     // URL вашего Битрикс24 (например: https://your-domain.bitrix24.ru)
     webhookUrl: process.env.BITRIX_WEBHOOK_URL,
     

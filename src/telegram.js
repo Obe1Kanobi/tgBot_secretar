@@ -1,5 +1,6 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { config } from './config.js';
+import { isBitrixEnabled, setBitrixEnabled, getModeName } from './bitrixMode.js';
 import axios from 'axios';
 import pino from 'pino';
 
@@ -19,9 +20,11 @@ logger.info({ tokenPresent: !!token }, 'Инициализация Telegram бо
 if (token) {
   try {
     // Используем polling вместо webhook для простоты (webhook требует HTTPS)
-    bot = new TelegramBot(token, { 
+    // Интервал опроса настраивается через TELEGRAM_POLLING_INTERVAL (мс),
+    // по умолчанию 5000 мс — чтобы не спамить серверы Telegram частыми запросами
+    bot = new TelegramBot(token, {
       polling: {
-        interval: 300,
+        interval: Number(process.env.TELEGRAM_POLLING_INTERVAL) || 5000,
         autoStart: true,
         params: {
           timeout: 10
@@ -36,8 +39,11 @@ if (token) {
       logger.info({ chatId }, 'Получена команда /help');
       bot.sendMessage(chatId, `/start - Начать работу с ботом
         \n/process [ссылка_на_встречу] - Обработать встречу
+        \n/process [ссылка] [ID_лида] - Обработать встречу и обновить лид в Битрикс24 (только в режиме Битрикс24)
+        \n/bitrix on|off|status - Включить/выключить режим Битрикс24 или показать текущий
         \n/help - Получить справку
-        \n/test - Простая команда для тестирования`).catch(console.error);
+        \n/test - Простая команда для тестирования
+        \n\nТекущий режим: ${getModeName()}`).catch(console.error);
     });
 
     // Добавить ещё команд
@@ -46,9 +52,39 @@ if (token) {
       const chatId = msg.chat.id;
       logger.info({ chatId }, 'Получена команда /start');
       bot.sendMessage(chatId, `🤖 Добро пожаловать в Meeting Bot!
-        \n\nДля анализа встречи отправьте:
+        \n\nТекущий режим: ${getModeName()}
+        \nДля анализа встречи отправьте:
         \n/process [ссылка_на_встречу]
+        \n/bitrix on|off - переключить режим Битрикс24
         \n/help - подробная справка`).catch(console.error);
+    });
+
+    // Переключение режима Битрикс24: /bitrix, /bitrix on, /bitrix off, /bitrix status
+    bot.onText(/^\/bitrix(?:@\S+)?(?:\s+(on|off|status))?\s*$/, (msg, match) => {
+      const chatId = msg.chat.id;
+      const action = match[1] || 'status';
+      logger.info({ chatId, action, currentMode: isBitrixEnabled() }, 'Получена команда /bitrix');
+
+      let response;
+      if (action === 'on') {
+        setBitrixEnabled(true);
+        response = '✅ Режим Битрикс24 ВКЛЮЧЁН.\n\nТеперь встречи анализируются по чек-листу из 12 пунктов, '
+          + 'а при указании ID лида (/process [ссылка] [ID_лида]) результаты обновляются в Битрикс24.';
+        logger.info({ chatId }, 'Режим Битрикс24 включён через Telegram');
+      } else if (action === 'off') {
+        setBitrixEnabled(false);
+        response = 'ℹ️ Режим Битрикс24 ВЫКЛЮЧЕН.\n\nБот работает в обычном режиме: только транскрипция '
+          + 'встречи и отчёт в Telegram без анализа и обновления лидов.';
+        logger.info({ chatId }, 'Режим Битрикс24 выключен через Telegram');
+      } else {
+        const enabled = isBitrixEnabled();
+        response = `ℹ️ Текущий режим: ${enabled ? 'Битрикс24' : 'обычный'}
+          \n\n/bitrix on — включить режим Битрикс24
+          \n/bitrix off — выключить режим Битрикс24 (обычный)
+          \n/bitrix status — показать текущий режим`;
+      }
+
+      bot.sendMessage(chatId, response).catch(console.error);
     });
 
     // Команда обработки встречи
@@ -67,7 +103,13 @@ if (token) {
         meetingUrl = 'https://' + meetingUrl;
       }
       
-      logger.info({ meetingUrl, leadId, chatId }, 'Обработка запроса на встречу из Telegram');
+      logger.info({ meetingUrl, leadId, chatId, bitrixMode: isBitrixEnabled() }, 'Обработка запроса на встречу из Telegram');
+
+      // Если передан leadId, но режим Битрикс24 выключен — предупреждаем пользователя
+      if (leadId && !isBitrixEnabled()) {
+        await bot.sendMessage(chatId, '⚠️ Вы указали ID лида, но режим Битрикс24 выключен. '
+          + 'Включите его командой /bitrix on, чтобы результаты попали в Битрикс24.');
+      }
       
       try {
         await bot.sendMessage(chatId, '🚀 Начинаю обработку встречи...');

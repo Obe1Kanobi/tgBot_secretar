@@ -5,11 +5,14 @@ import { startPulseRecording, stopRecording } from './recording.js';
 import { transcribeAudio } from './transcribe.js';
 import { sendMessage } from './telegram.js';
 import { config } from './config.js';
-import { 
-  setupMiddleware, 
-  setupHealthCheck, 
-  setupErrorHandling, 
-  setupGracefulShutdown 
+import { isBitrixEnabled } from './bitrixMode.js';
+import { bitrixService } from './fromBitrix/bitrix.js';
+import { runChecklist } from './fromBitrix/salesProccesForBitrix24.js';
+import {
+  setupMiddleware,
+  setupHealthCheck,
+  setupErrorHandling,
+  setupGracefulShutdown
 } from './middleware.js';
 
 // Logger configuration
@@ -31,14 +34,15 @@ setupHealthCheck(app);
 
 // Endpoint для полного цикла анализа встречи
 app.post('/process-meeting', async (req, res) => {
-  const { meetingUrl, chatId /* , leadId */ } = req.body || {};
+  const { meetingUrl, chatId, leadId } = req.body || {};
+  const bitrixMode = isBitrixEnabled();
 
   // Куда слать отчёт: чат, из которого пришла команда, либо ADMIN_CHAT_ID из .env
   const reportChatId = chatId || config.adminChatId;
   
   // Validation
   if (!meetingUrl) {
-    logger.warn({ meetingUrl /* , leadId */ }, 'Отсутствует meetingUrl в запросе');
+    logger.warn({ meetingUrl, leadId }, 'Отсутствует meetingUrl в запросе');
     return res.status(400).json({ 
       error: 'VALIDATION_ERROR',
       message: 'meetingUrl is required',
@@ -57,7 +61,7 @@ app.post('/process-meeting', async (req, res) => {
     });
   }
   
-  logger.info({ meetingUrl: meetingUrl /* , leadId */ }, 'Получен запрос на обработку встречи');
+  logger.info({ meetingUrl, leadId, bitrixMode }, 'Получен запрос на обработку встречи');
 
   let browser, page, rec, audioFile;
   try {
@@ -111,31 +115,59 @@ app.post('/process-meeting', async (req, res) => {
     const transcript = await transcribeAudio(outfile, logger);
     logger.info({ transcriptLength: transcript.length }, 'Транскрипт получен');
 
-    // Анализ по чек-листу через Gemini
-    // const analysisResult = await runChecklist(transcript, logger);
-    // logger.info({ overallScore: analysisResult.overallScore, category: analysisResult.category }, 'Meeting analysis completed');
+    // Анализ по чек-листу через Gemini — только в режиме Битрикс24
+    let analysisResult = null;
+    if (bitrixMode) {
+      analysisResult = await runChecklist(transcript, logger);
+      logger.info(
+        { overallScore: analysisResult.overallScore, category: analysisResult.category },
+        'Meeting analysis completed'
+      );
+    } else {
+      logger.info('Режим Битрикс24 выключен — анализ по чек-листу пропущен');
+    }
 
-    // Обновляем лид в Bitrix24 если указан leadId
-    // if (leadId && config.bitrix.webhookUrl) {
-    //   try {
-    //     await bitrixService.updateLead(leadId, analysisResult, transcript, meetingUrl, logger);
-    //     logger.info({ leadId }, 'Bitrix lead updated successfully');
-    //   } catch (bitrixError) {
-    //     logger.error({ leadId, error: bitrixError.message }, 'Failed to update Bitrix lead');
-    //     // Не прерываем выполнение, просто логируем ошибку
-    //   }
-    // }
+    // Обновляем лид в Bitrix24 — только в режиме Битрикс24
+    let bitrixUpdated = false;
+    if (bitrixMode && leadId && config.bitrix.webhookUrl) {
+      try {
+        await bitrixService.updateLead(leadId, analysisResult, transcript, meetingUrl, logger);
+        bitrixUpdated = true;
+        logger.info({ leadId }, 'Bitrix lead updated successfully');
+      } catch (bitrixError) {
+        logger.error({ leadId, error: bitrixError.message }, 'Failed to update Bitrix lead');
+        // Не прерываем выполнение, просто логируем ошибку
+      }
+    } else if (leadId && !bitrixMode) {
+      logger.info({ leadId }, 'leadId передан, но режим Битрикс24 выключен — обновление лида пропущено');
+    }
 
     // Формируем отчет для отправки админу
-    const reportMessage = `
-📊 ОТЧЕТ ПО ВСТРЕЧЕ
+    let reportMessage;
+    if (bitrixMode && analysisResult) {
+      reportMessage = `
+📊 ОТЧЕТ ПО ВСТРЕЧЕ (режим Битрикс24)
+
+🔗 Ссылка: ${meetingUrl}
+⭐ Оценка: ${analysisResult.overallScore}/100
+🏷️ Категория клиента: ${analysisResult.category}
+
+💡 Резюме: ${analysisResult.summary}
+
+📝 Транскрипт (первые 700 символов):
+${transcript.substring(0, 700)}...
+      `.trim();
+    } else {
+      reportMessage = `
+📊 ОТЧЕТ ПО ВСТРЕЧЕ (обычный режим)
 
 🔗 Ссылка: ${meetingUrl}
 📝 Длина транскрипта: ${transcript.length} символов
 
 🎧 Транскрипт (первые 700 символов):
 ${transcript.substring(0, 700)}...
-    `.trim();
+      `.trim();
+    }
 
     // Отправляем отчет в чат, откуда пришла команда (или админу как fallback)
     if (reportChatId) {
@@ -146,9 +178,18 @@ ${transcript.substring(0, 700)}...
     res.json({
       success: true,
       meetingUrl,
-      // leadId,
+      leadId: leadId || null,
       transcriptLength: transcript.length,
-      // bitrixUpdated: !!(leadId && config.bitrix.webhookUrl)
+      mode: bitrixMode ? 'bitrix24' : 'standard',
+      ...(analysisResult && {
+        analysis: {
+          overallScore: analysisResult.overallScore,
+          category: analysisResult.category,
+          summary: analysisResult.summary,
+          pointsCount: Object.keys(analysisResult.points || {}).length
+        }
+      }),
+      bitrixUpdated
     });
 
   } catch (e) {
@@ -156,7 +197,7 @@ ${transcript.substring(0, 700)}...
       err: e.message,
       stack: e.stack,
       meetingUrl,
-      // leadId
+      leadId
     }, 'Ошибка обработки встречи');
     
     // Отправляем ошибку в чат, откуда пришла команда (или админу как fallback)
@@ -171,7 +212,7 @@ ${transcript.substring(0, 700)}...
       error: 'PROCESSING_ERROR',
       message: e.message || 'Internal error',
       meetingUrl,
-      // leadId
+      leadId: leadId || null
     });
   } finally {
     // Cleanup resources
