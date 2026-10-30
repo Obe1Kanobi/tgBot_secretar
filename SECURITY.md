@@ -1,133 +1,162 @@
-# Security Policy
+# Политика безопасности
 
-## Supported Versions
+> **⚠️ Дисклеймер о назначении проекта**
+>
+> Meeting Bot — учебно-демонстрационный проект, созданный в целях демонстрации навыков разработки (портфолио). Он **не предназначен для коммерческого использования** и **не рекомендуется для продакшена**, где обрабатываются чувствительные данные реальных пользователей.
+>
+> Проект содержит существенные ограничения безопасности (см. раздел [«Известные ограничения»](#известные-ограничения)): браузер работает с отключёнными механизмами изоляции, основной API-эндпоинт не защищён аутентификацией, команды Telegram-бота не фильтруются по чату. Использование проекта в реальной коммерческой среде происходит **на ваш страх и риск**.
+>
+> Этот документ описывает текущее состояние безопасности, чтобы честно фиксировать реализованные меры и известные риски, а также служит демонстрацией практик написания документации о безопасности.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.0.x   | :white_check_mark: |
+## Поддерживаемые версии
 
-## Reporting a Vulnerability
+| Версия | Поддерживается |
+| ------ | -------------- |
+| 1.0.x  | :white_check_mark: |
 
-We take the security of Meeting Bot seriously. If you believe you have found a security vulnerability, please report it to us as described below.
+## Сообщение об уязвимости
 
-**Please do NOT report security vulnerabilities through public GitHub issues.**
+Мы серьёзно относимся к безопасности Meeting Bot. Если вы считаете, что нашли уязвимость, пожалуйста, сообщите о ней так, как описано ниже.
 
-Instead, please report them via email at security@example.com or create a draft security advisory on GitHub.
+**Пожалуйста, НЕ сообщайте об уязвимостях через публичные GitHub Issues.**
 
-You should receive a response within 48 hours acknowledging your report. After the initial reply, we will keep you informed of the progress towards a fix and announcement.
+Вместо этого отправьте отчёт по электронной почте на **security@example.com** (замените на реальный адрес) или создайте черновик security advisory на GitHub (вкладка «Security»).
 
-## Security Best Practices
+Вы должны получить ответ в течение **48 часов** с подтверждением получения отчёта. После первого ответа мы будем держать вас в курсе прогресса по исправлению и публикации информации об уязвимости.
 
-### For Users
+## Лучшие практики безопасности
 
-1. **Environment Variables**
-   - Never commit `.env` files to version control
-   - Use strong, unique API keys
-   - Rotate credentials regularly
-   - Use secrets management in production
+### Для тех, кто разворачивает проект
 
-2. **Network Security**
-   - Deploy behind HTTPS proxy in production
-   - Use firewall rules to restrict access
-   - Enable rate limiting (configured by default)
-   - Monitor for unusual traffic patterns
+1. **Переменные окружения**
+   - Никогда не коммитьте файлы `.env` в систему контроля версий (см. `.gitignore` / `.codeassistantignore`)
+   - Используйте надёжные, уникальные ключи и токены:
+     - `TELEGRAM_BOT_TOKEN` — токен Telegram-бота
+     - `GEMINI_API_KEY` — ключ Google Gemini
+     - `BITRIX_WEBHOOK_URL` — содержит ID пользователя и ключ вебхука Битрикс24
+     - `HEALTH_CHECK_TOKEN` — токен для защиты health-check эндпоинтов
+   - Регулярно ротируйте учётные данные
+   - В продакшене используйте секреты через систему управления секретами (Render Dashboard, Docker secrets и т.п.)
+   - Не логируйте и не выводите значения секретов в консоль
 
-3. **Access Control**
-   - Restrict Telegram bot access to authorized users only
-   - Use `ADMIN_CHAT_ID` to limit who can trigger actions
-   - Consider adding API key authentication for sensitive endpoints
+2. **Сетевая безопасность**
+   - Разворачивайте за HTTPS-прокси в продакшене (Render предоставляет HTTPS автоматически через `RENDER_EXTERNAL_URL`)
+   - Используйте правила файрвола для ограничения доступа
+   - Настройте rate limiting (см. [«Известные ограничения»](#известные-ограничения) — по умолчанию он покрывает только `/api/*`)
+   - Следите за необычными паттернами трафика
 
-4. **Data Protection**
-   - Recording files are stored temporarily in `/tmp/recordings`
-   - Files are automatically deleted after processing
-   - Consider encrypting recordings if storing long-term
+3. **Управление доступом**
+   - Ограничьте доступ к Telegram-боту: команды `/process`, `/bitrix` и другие обрабатываются из любого чата, поэтому **не публикуйте ссылку на бота** — используйте его только в закрытых чатах
+   - `ADMIN_CHAT_ID` используется как запасной чат для отчётов, но **не фильтрует команды** — при необходимости добавьте проверку `msg.chat.id` в обработчики команд
+   - Эндпоинт `POST /process-meeting` сейчас **не требует аутентификации** — при публичном развёртывании добавьте проверку API-ключа (заголовок `X-API-Key` уже разрешён в CORS)
+   - Защитите health-check эндпоинты токеном `HEALTH_CHECK_TOKEN` (передаётся в заголовке `x-health-token`)
 
-5. **Dependencies**
-   - Keep dependencies updated (`npm audit`, `npm update`)
-   - Review security advisories regularly
-   - Use `npm audit fix` for automatic patches
+4. **Защита данных**
+   - Файлы записей хранятся временно в каталоге `REC_DIR` (по умолчанию `/tmp/recordings`)
+   - Временный аудиофайл автоматически удаляется после транскрипции
+   - Максимальная длительность записи ограничена `REC_MAX_SECONDS` (по умолчанию 3600 секунд)
+   - Если планируете хранить записи длительно — рассмотрите шифрование
+   - Учитывайте, что в лог попадают URL встреч (`meetingUrl`), которые могут содержать токены доступа некоторых платформ — при необходимости маскируйте URL при логировании
 
-### Known Limitations
+5. **Зависимости**
+   - Регулярно обновляйте зависимости (`npm audit`, `npm update`)
+   - Следите за security advisories (GitHub Advisory Database, `npm audit`)
+   - Используйте `npm audit fix` для автоматических исправлений
 
-1. **Puppeteer Security**
-   - Browser runs with `--no-sandbox` in Docker (required for containerized environments)
-   - Consider using a sandboxed environment for untrusted URLs
-   - Be cautious with user-provided meeting URLs
+### Известные ограничения
+
+1. **Puppeteer / Chrome**
+   - Браузер запускается с флагами `--no-sandbox`, `--disable-web-security`, `--allow-running-insecure-content`, `--allow-file-access-from-files` и `headless: false` — это необходимо для работы с реальными платформами встреч (Zoom, Google Meet, Teams, Telemost) в контейнере, но **значительно снижает безопасность** при открытии недоверенных URL
+   - Используйте браузер только с проверенными ссылками на встречи
+   - Ограничьте сетевой доступ контейнера, чтобы снизить риск SSRF (открытие произвольных внутренних URL браузером)
+   - Рассмотрите запуск в изолированном окружении для URL из непроверенных источников
 
 2. **Rate Limiting**
-   - Default: 10 requests per minute per IP on `/api/*` routes
-   - Adjust based on your usage patterns
-   - Monitor for abuse
+   - По умолчанию: 10 запросов в минуту на IP для маршрутов `/api/*` (`RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_REQUESTS`)
+   - ⚠️ Основной эндпоинт `POST /process-meeting` **не входит** в `/api/*` и не покрыт лимитом — настройте дополнительный лимитер или аутентификацию
+   - Настраивайте значения под ваши паттерны использования
+   - Мониторьте признаки злоупотреблений
 
-3. **API Keys**
-   - Gemini API key has quota limits
-   - Monitor usage in Google Cloud Console
-   - Set up billing alerts
+3. **Telegram-бот**
+   - Используется polling (интервал `TELEGRAM_POLLING_INTERVAL`, по умолчанию 5000 мс), а не webhook — секретный токен хранится только в `TELEGRAM_BOT_TOKEN`
+   - Не давайте бота посторонним: он умеет открывать браузер и записывать звук
 
-## Security Features Implemented
+4. **Google Gemini**
+   - Ключ `GEMINI_API_KEY` имеет квоты на использование
+   - Мониторьте расход в Google Cloud Console
+   - Настройте уведомления о превышении бюджета
 
-- ✅ Helmet security headers
-- ✅ CORS configuration
-- ✅ Rate limiting
-- ✅ Input validation
-- ✅ Structured logging (no sensitive data)
-- ✅ Error handling (no stack traces in production)
-- ✅ Graceful shutdown
-- ✅ Resource cleanup
+## Реализованные меры безопасности
 
-## Security Checklist for Deployment
+- ✅ Helmet — security headers (отключается через `HELMET_ENABLED=false`; CSP отключён для API)
+- ✅ Настройка CORS через `CORS_ORIGIN` (по умолчанию `*` — замените на ваш домен в продакшене)
+- ✅ Rate limiting для `/api/*` маршрутов
+- ✅ Ограничение размера тела запроса (`MAX_REQUEST_SIZE`, по умолчанию 10 МБ)
+- ✅ Валидация входных данных (проверка формата `meetingUrl` через `new URL()`, проверка обязательных полей)
+- ✅ Структурированное логирование (pino, без секретов и токенов)
+- ✅ Обработка ошибок — в продакшене стектрейсы не раскрываются
+- ✅ Graceful shutdown с таймаутом (`SHUTDOWN_TIMEOUT`, по умолчанию 30 с), обработка `SIGTERM`/`SIGINT`, `uncaughtException`, `unhandledRejection`
+- ✅ Очистка ресурсов после обработки встречи (браузер, страница, запись — блок `finally`)
+- ✅ Удаление временного аудиофайла после транскрипции
+- ✅ Опциональная аутентификация health-check (`HEALTH_CHECK_TOKEN`)
 
-- [ ] Set strong, unique API keys
-- [ ] Configure CORS for your domain
-- [ ] Enable HTTPS
-- [ ] Set up monitoring and alerting
-- [ ] Configure firewall rules
-- [ ] Review rate limit settings
-- [ ] Test health check endpoints
-- [ ] Verify logging configuration
-- [ ] Set up backup procedures
-- [ ] Document incident response plan
+## Чек-лист безопасности при развёртывании
 
-## Third-Party Services
+> Для демонстрационного проекта этот чек-лист — справочный материал. Если проект выходит за рамки демонстрации, выполнение всех пунктов обязательно.
 
-This application uses:
+- [ ] Задайте надёжные, уникальные ключи API (Telegram, Gemini, Bitrix24)
+- [ ] Укажите `CORS_ORIGIN` — ваш домен вместо `*`
+- [ ] Включите HTTPS (на Render — автоматически)
+- [ ] Защитите `POST /process-meeting` аутентификацией (например, API-ключ) или ограничьте доступ файрволом
+- [ ] Настройте rate limiting и для `POST /process-meeting`
+- [ ] Установите `HEALTH_CHECK_TOKEN` и проверьте, что `/health` без токена возвращает 403
+- [ ] Настройте мониторинг и алерты
+- [ ] Настройте правила файрвола
+- [ ] Проверьте конфигурацию логирования (нет ли утечки URL с токенами)
+- [ ] Настройте процедуры резервного копирования
+- [ ] Опишите план реагирования на инциденты
+- [ ] Не публикуйте ссылку на Telegram-бота в открытом доступе
 
-1. **Google Gemini AI** - Review [Google's security practices](https://cloud.google.com/security)
-2. **Telegram Bot API** - Review [Telegram's security](https://core.telegram.org/api/security)
-3. **Bitrix24** - Review [Bitrix24 security](https://www.bitrix24.com/security.php)
+## Сторонние сервисы
 
-Ensure you understand and comply with their terms of service and security requirements.
+Приложение использует:
 
-## Incident Response
+1. **Google Gemini AI** — изучите [практики безопасности Google](https://cloud.google.com/security)
+2. **Telegram Bot API** — изучите [безопасность Telegram](https://core.telegram.org/api/security)
+3. **Bitrix24** — изучите [безопасность Bitrix24](https://www.bitrix24.com/security.php)
 
-In case of a security incident:
+Убедитесь, что вы понимаете и соблюдаете их условия использования и требования безопасности.
 
-1. **Immediate Actions**
-   - Revoke compromised credentials
-   - Stop affected services if necessary
-   - Preserve logs for investigation
+## Реагирование на инциденты
 
-2. **Investigation**
-   - Review logs for unauthorized access
-   - Check for data exposure
-   - Identify root cause
+В случае инцидента безопасности:
 
-3. **Recovery**
-   - Patch vulnerabilities
-   - Rotate all credentials
-   - Resume services with enhanced monitoring
+1. **Немедленные действия**
+   - Отзовите скомпрометированные учётные данные (токены Telegram, Gemini, вебхуки Bitrix24)
+   - При необходимости остановите затронутые сервисы
+   - Сохраните логи для расследования
 
-4. **Post-Incident**
-   - Document lessons learned
-   - Update security procedures
-   - Communicate with affected users if required
+2. **Расследование**
+   - Просмотрите логи на предмет несанкционированного доступа
+   - Проверьте возможную утечку данных
+   - Определите первопричину
 
-## Contact
+3. **Восстановление**
+   - Устраните уязвимости
+   - Ротируйте все учётные данные
+   - Возобновите работу сервисов с усиленным мониторингом
 
-For security-related questions:
-- Email: security@example.com
-- GitHub Security Advisories: Use the "Security" tab
+4. **Пост-инцидентный анализ**
+   - Задокументируйте извлечённые уроки
+   - Обновите процедуры безопасности
+   - При необходимости сообщите пострадавшим пользователям
+
+## Контакты
+
+По вопросам безопасности:
+- Email: security@example.com (замените на реальный адрес)
+- GitHub Security Advisories: вкладка «Security» репозитория
 
 ---
 
-Last updated: January 2024
+Последнее обновление: октябрь 2026
